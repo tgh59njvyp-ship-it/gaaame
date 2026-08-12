@@ -266,6 +266,14 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({
               <span className="text-[#b8b09d] font-bold">DEF {calculatedStats.def}</span>
               <span className="text-[#d4af37] font-bold">SPD {calculatedStats.spd}</span>
             </div>
+            <button
+              onClick={() => setShowResetModal(true)}
+              className="px-3 py-1.5 bg-[#181010] hover:bg-[#281414] border border-[#522222] text-[#e57373] text-xs font-bold rounded-lg transition flex items-center gap-1 cursor-pointer shrink-0 ml-1"
+              title="セーブデータを完全削除して初期化"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>データ初期化</span>
+            </button>
           </div>
         </div>
       </div>

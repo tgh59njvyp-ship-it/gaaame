@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { CharacterState, Enemy, Spell, Item } from '../types';
-import { Swords, Wand2, Shield, Backpack, Zap, Flame, Snowflake, Skull, Sparkles, Trophy, Coins, Hourglass, ChevronRight, User, ShieldAlert } from 'lucide-react';
+import { Swords, Wand2, Shield, Backpack, Zap, Flame, Snowflake, Skull, Sparkles, Trophy, Coins, Hourglass, ChevronRight, User, ShieldAlert, FlameKindling, Waves } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { getTitleBonuses, TITLES } from '../utils/titleUtils';
-import { checkAndUnlockLevelUpSpells } from '../utils/spellUtils';
+import { checkAndUnlockLevelUpSpells, getSpellElementInfo, getComboMultiplier, ElementInfo } from '../utils/spellUtils';
 import { getSkillStatsBonus } from '../utils/skillUtils';
 
 interface BattleScreenProps {
@@ -44,7 +44,12 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const [isAetherBurstActive, setIsAetherBurstActive] = useState(false);
   const [burstTurnsLeft, setBurstTurnsLeft] = useState(0);
   const [screenShake, setScreenShake] = useState(false);
-  const [flashEffect, setFlashEffect] = useState<'critical' | 'burst' | 'heal' | 'hit' | null>(null);
+  const [flashEffect, setFlashEffect] = useState<'critical' | 'burst' | 'heal' | 'hit' | 'fire' | 'ice' | 'lightning' | 'wind' | 'holy' | 'dark' | null>(null);
+  
+  // --- ELEMENTAL COMBO MECHANISM ---
+  const [lastSpellElement, setLastSpellElement] = useState<string | null>(null);
+  const [elementComboCount, setElementComboCount] = useState<number>(0);
+
   const [currentSpells, setCurrentSpells] = useState<Spell[]>(() => {
     return character.spells.map(s => ({
       ...s,
@@ -59,7 +64,14 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     newLevel: number;
     powerBonus: number;
   } | null>(null);
-  const [damagePopup, setDamagePopup] = useState<{ amount: number; isCrit: boolean; isBurst: boolean; isHeal?: boolean; spellMastery?: number } | null>(null);
+  const [damagePopup, setDamagePopup] = useState<{ 
+    amount: number; 
+    isCrit: boolean; 
+    isBurst: boolean; 
+    isHeal?: boolean; 
+    spellMastery?: number;
+    comboInfo?: { icon: string; count: number; mult: number; name: string };
+  } | null>(null);
 
   // Achievements tracking during this combat
   const [maxDamageThisBattle, setMaxDamageThisBattle] = useState(0);
@@ -69,11 +81,15 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const titleBonus = getTitleBonuses(character.title);
   const skillBonus = getSkillStatsBonus(character);
   const totalMaxHp = character.maxHp + titleBonus.hp + skillBonus.hp;
-  const totalMaxMp = character.maxMp + titleBonus.mp + skillBonus.mp;
+  const totalMaxMp = character.mpCost ? character.maxMp : character.maxMp + titleBonus.mp + skillBonus.mp;
   
   const characterAtk = character.atk + (character.equipment.weapon?.stats?.atk || 0) + titleBonus.atk + skillBonus.atk;
   const characterDef = character.def + (character.equipment.armor?.stats?.def || 0) + titleBonus.def + skillBonus.def;
   const characterCrit = character.crit + titleBonus.crit + skillBonus.crit;
+
+  const currentActiveElementInfo = lastSpellElement 
+    ? getSpellElementInfo({ id: '', name: '', mpCost: 0, power: 0, desc: '', effectType: 'damage', element: lastSpellElement as any })
+    : null;
 
   const addLog = (msg: string) => {
     setBattleLogs((prev) => [msg, ...prev.slice(0, 15)]);
@@ -84,13 +100,20 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     setTimeout(() => setScreenShake(false), 300);
   };
 
-  const triggerFlash = (type: 'critical' | 'burst' | 'heal' | 'hit') => {
+  const triggerFlash = (type: 'critical' | 'burst' | 'heal' | 'hit' | 'fire' | 'ice' | 'lightning' | 'wind' | 'holy' | 'dark') => {
     setFlashEffect(type);
     setTimeout(() => setFlashEffect(null), 250);
   };
 
-  const showDamageIndicator = (amount: number, isCrit: boolean, isBurst: boolean, isHeal: boolean = false, spellMastery: number = 1) => {
-    setDamagePopup({ amount, isCrit, isBurst, isHeal, spellMastery });
+  const showDamageIndicator = (
+    amount: number, 
+    isCrit: boolean, 
+    isBurst: boolean, 
+    isHeal: boolean = false, 
+    spellMastery: number = 1,
+    comboInfo?: { icon: string; count: number; mult: number; name: string }
+  ) => {
+    setDamagePopup({ amount, isCrit, isBurst, isHeal, spellMastery, comboInfo });
     if (!isHeal && amount > maxDamageThisBattle) {
       setMaxDamageThisBattle(amount);
     }
@@ -235,6 +258,10 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const handleAttack = () => {
     if (!isPlayerTurn || isBattleOver) return;
 
+    // Normal physical attack breaks magic elemental combo
+    setLastSpellElement(null);
+    setElementComboCount(0);
+
     // Aether Burst active multipliers
     const dmgMultiplier = isAetherBurstActive ? 3.5 : 1.0;
     const critBonus = isAetherBurstActive ? 50 : 0;
@@ -310,20 +337,46 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     setCharMp(newMp);
     setShowSpellMenu(false);
 
+    // Derive spell element info & calculate combo multiplier
+    const elemInfo = getSpellElementInfo(spell);
+    
+    let newComboCount = 1;
+    if (lastSpellElement === elemInfo.id) {
+      newComboCount = elementComboCount + 1;
+    }
+    setLastSpellElement(elemInfo.id);
+    setElementComboCount(newComboCount);
+
+    const comboMult = getComboMultiplier(newComboCount);
+
     // Burst logic applies partially to magic
     const burstMultiplier = isAetherBurstActive ? 2.2 : 1.0;
+    const totalSpellMult = burstMultiplier * comboMult;
 
     // Trigger mastery experience gain
     setTimeout(() => {
       incrementSpellMastery(spell.id);
     }, 500);
 
+    const comboInfoObj = newComboCount >= 2 ? {
+      icon: elemInfo.icon,
+      count: newComboCount,
+      mult: comboMult,
+      name: elemInfo.elementName,
+    } : undefined;
+
     if (spell.effectType === 'heal') {
-      const healAmount = Math.floor((totalMaxHp * (spell.power / 100) + 20) * burstMultiplier);
+      const healAmount = Math.floor((totalMaxHp * (spell.power / 100) + 20) * totalSpellMult);
       const newHp = Math.min(totalMaxHp, charHp + healAmount);
       setCharHp(newHp);
-      addLog(`${character.name}は ${spell.name} を唱えた！ HPが ${healAmount} 回復した。`);
-      showDamageIndicator(healAmount, false, false, true, mLevel);
+      
+      if (newComboCount >= 2) {
+        addLog(`${elemInfo.icon} 【${elemInfo.elementName}コンボ x${newComboCount}】 聖なる魔力が共鳴！ 回復量が ${comboMult.toFixed(2)}倍 に上昇 (${healAmount})！`);
+      } else {
+        addLog(`${character.name}は ${spell.name} を唱えた！ HPが ${healAmount} 回復した。`);
+      }
+
+      showDamageIndicator(healAmount, false, false, true, mLevel, comboInfoObj);
       triggerFlash('heal');
       setIsPlayerTurn(false);
       setTimeout(() => executeEnemyTurn(newHp, newMp, enemyHp), 600);
@@ -331,16 +384,22 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     }
 
     if (spell.effectType === 'drain') {
-      const spellDmg = Math.floor(spell.power * 1.2 * burstMultiplier);
+      const spellDmg = Math.floor(spell.power * 1.2 * totalSpellMult);
       const newEnemyHp = Math.max(0, enemyHp - spellDmg);
       const healAmount = Math.floor(spellDmg * 0.5);
       const newHp = Math.min(totalMaxHp, charHp + healAmount);
       setCharHp(newHp);
       setEnemyHp(newEnemyHp);
-      addLog(`${character.name}の ${spell.name}！ ${enemy.name}に ${spellDmg} の魔力ダメージを与え、HPを ${healAmount} 吸収！`);
-      showDamageIndicator(spellDmg, false, isAetherBurstActive, false, mLevel);
+
+      if (newComboCount >= 2) {
+        addLog(`${elemInfo.icon} 【${elemInfo.elementName}コンボ x${newComboCount}】 闇の魔力が集約！ ${enemy.name}に ${spellDmg} の超吸収ダメージ（${comboMult.toFixed(2)}倍）！`);
+      } else {
+        addLog(`${character.name}の ${spell.name}！ ${enemy.name}に ${spellDmg} の魔力ダメージを与え、HPを ${healAmount} 吸収！`);
+      }
+
+      showDamageIndicator(spellDmg, false, isAetherBurstActive, false, mLevel, comboInfoObj);
       triggerScreenShake();
-      triggerFlash(isAetherBurstActive ? 'burst' : 'critical');
+      triggerFlash(elemInfo.id as any);
 
       // Small secondary heal popup shortly after
       setTimeout(() => {
@@ -358,17 +417,23 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     }
 
     // Damage spell
-    let spellDmg = Math.floor(spell.power * (character.magicType.id === 'mage' ? 1.45 : 1.1) * burstMultiplier);
+    let spellDmg = Math.floor(spell.power * (character.magicType.id === 'mage' ? 1.45 : 1.1) * totalSpellMult);
     if (character.race.id === 'elf') spellDmg = Math.floor(spellDmg * 1.15);
 
     // Variance
     spellDmg = Math.floor(spellDmg * (0.9 + Math.random() * 0.2));
 
     const newEnemyHp = Math.max(0, enemyHp - spellDmg);
-    addLog(`${character.name}の ${spell.name}！ ${enemy.name}に ${spellDmg} の魔法ダメージ！`);
-    showDamageIndicator(spellDmg, false, isAetherBurstActive, false, mLevel);
+    
+    if (newComboCount >= 2) {
+      addLog(`${elemInfo.icon} 【${elemInfo.elementName}コンボ x${newComboCount}】 元素が激しく共鳴！ ${enemy.name}に ${spellDmg} (${comboMult.toFixed(2)}倍) の属性大打撃！`);
+    } else {
+      addLog(`${character.name}の ${spell.name}！ ${enemy.name}に ${spellDmg} の魔法ダメージ！`);
+    }
+
+    showDamageIndicator(spellDmg, false, isAetherBurstActive, false, mLevel, comboInfoObj);
     triggerScreenShake();
-    triggerFlash(isAetherBurstActive ? 'burst' : 'critical');
+    triggerFlash(elemInfo.id as any);
 
     if (spell.statusEffect && Math.random() < spell.statusEffect.chance) {
       setEnemyStatus({ type: spell.statusEffect.type, duration: spell.statusEffect.duration });
@@ -428,6 +493,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const handleDefend = () => {
     if (!isPlayerTurn || isBattleOver) return;
     setIsDefending(true);
+    setLastSpellElement(null);
+    setElementComboCount(0);
     addLog(`${character.name}は身構えて防御力を高めた！`);
     setIsPlayerTurn(false);
     setTimeout(() => executeEnemyTurn(charHp, charMp, enemyHp), 600);
@@ -537,7 +604,19 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                 ? 'bg-red-500/25'
                 : flashEffect === 'heal'
                   ? 'bg-emerald-500/15'
-                  : 'bg-white/10'
+                  : flashEffect === 'fire'
+                    ? 'bg-red-600/30'
+                    : flashEffect === 'ice'
+                      ? 'bg-cyan-400/30'
+                      : flashEffect === 'lightning'
+                        ? 'bg-amber-300/30'
+                        : flashEffect === 'wind'
+                          ? 'bg-emerald-400/30'
+                          : flashEffect === 'holy'
+                            ? 'bg-yellow-200/30'
+                            : flashEffect === 'dark'
+                              ? 'bg-purple-700/30'
+                              : 'bg-white/10'
           }`} />
         )}
 
@@ -658,7 +737,18 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                 </motion.div>
               )}
 
-              {damagePopup.isCrit && (!damagePopup.spellMastery || damagePopup.spellMastery < 2) && (
+              {damagePopup.comboInfo && damagePopup.comboInfo.count >= 2 && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.5, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ delay: 0.05, type: 'spring' }}
+                  className="bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-slate-950 font-black text-[10px] tracking-[0.2em] px-3.5 py-1 rounded-full uppercase shadow-[0_4px_15px_rgba(245,158,11,0.5)] border border-yellow-300 inline-flex items-center gap-1.5 mt-2 font-mono whitespace-nowrap animate-bounce"
+                >
+                  <span>{damagePopup.comboInfo.icon}</span>
+                  <span>{damagePopup.comboInfo.name} COMBO x{damagePopup.comboInfo.count} ({damagePopup.comboInfo.mult.toFixed(2)}x DMG)</span>
+                </motion.div>
+              )}
+              {damagePopup.isCrit && (!damagePopup.spellMastery || damagePopup.spellMastery < 2) && !damagePopup.comboInfo && (
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.5, y: 10 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -877,6 +967,56 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
           </div>
         )}
 
+        {/* Elemental Combo Active HUD Banner */}
+        {currentActiveElementInfo && elementComboCount >= 1 && !isBattleOver && (
+          <motion.div 
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4 p-3 rounded-2xl bg-[#0c0d12] border border-[#2d2d38] relative overflow-hidden flex items-center justify-between shadow-lg z-10"
+          >
+            <div 
+              className="absolute inset-0 pointer-events-none opacity-20 transition-all duration-500"
+              style={{
+                background: `radial-gradient(circle at left, ${currentActiveElementInfo.glowColor}, transparent 70%)`
+              }}
+            />
+
+            <div className="flex items-center gap-3 relative z-10 min-w-0">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg font-black shrink-0 border ${currentActiveElementInfo.borderColor} ${currentActiveElementInfo.badgeBg} shadow-inner`}>
+                {currentActiveElementInfo.icon}
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black text-white tracking-wide">
+                    {currentActiveElementInfo.elementName}魔力連鎖
+                  </span>
+                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-full font-mono border ${currentActiveElementInfo.borderColor} ${currentActiveElementInfo.badgeBg} ${elementComboCount >= 2 ? 'animate-pulse' : ''}`}>
+                    COMBO x{elementComboCount}
+                  </span>
+                </div>
+                <span className="text-[10px] text-slate-400 block truncate mt-0.5 font-mono">
+                  {elementComboCount >= 2 ? (
+                    <span className="text-amber-400 font-bold">
+                      🔥 ダメージ倍率: {getComboMultiplier(elementComboCount).toFixed(2)}倍 UP中！
+                    </span>
+                  ) : (
+                    <span>同属性魔法の連続使用でダメージ倍率UP！（次で1.25倍）</span>
+                  )}
+                </span>
+              </div>
+            </div>
+
+            {elementComboCount >= 2 && (
+              <div className="relative z-10 shrink-0 text-right">
+                <span className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-orange-400 to-amber-500 font-mono tracking-tight drop-shadow">
+                  +{Math.round((getComboMultiplier(elementComboCount) - 1) * 100)}%
+                </span>
+                <span className="text-[9px] text-amber-400/80 block font-bold font-mono">POWER BOOST</span>
+              </div>
+            )}
+          </motion.div>
+        )}
+
         {/* Primary Action Button Bar */}
         {!isBattleOver && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 relative z-10">
@@ -963,7 +1103,11 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                 const mExp = spell.masteryExp ?? 0;
                 const mMax = spell.masteryMaxExp ?? 3;
                 const expPercent = Math.min(100, (mExp / mMax) * 100);
-                
+                const spellElem = getSpellElementInfo(spell);
+                const isComboMatch = lastSpellElement === spellElem.id;
+                const nextComboCount = isComboMatch ? elementComboCount + 1 : 1;
+                const nextMult = getComboMultiplier(nextComboCount);
+
                 return (
                   <button
                     key={spell.id}
@@ -971,10 +1115,19 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                     onClick={() => handleCastSpell(spell)}
                     className={`p-3 border rounded-xl text-left flex flex-col justify-between transition duration-300 relative overflow-hidden ${
                       charMp >= spell.mpCost
-                        ? 'bg-slate-900/90 hover:bg-purple-950/20 border-slate-800/80 hover:border-purple-500/60 cursor-pointer shadow-[0_4px_12px_rgba(0,0,0,0.5)]'
+                        ? isComboMatch && elementComboCount >= 1
+                          ? 'bg-slate-900/90 border-amber-500/80 shadow-[0_0_15px_rgba(245,158,11,0.2)] hover:border-amber-400 cursor-pointer'
+                          : 'bg-slate-900/90 hover:bg-purple-950/20 border-slate-800/80 hover:border-purple-500/60 cursor-pointer shadow-[0_4px_12px_rgba(0,0,0,0.5)]'
                         : 'bg-slate-950/50 border-slate-950/80 text-slate-600 cursor-not-allowed'
                     }`}
                   >
+                    {/* Combo badge overlay if this spell will extend combo */}
+                    {isComboMatch && elementComboCount >= 1 && (
+                      <div className="absolute top-0 right-0 bg-gradient-to-l from-amber-500 via-orange-500 to-transparent text-slate-950 text-[9px] font-black px-2.5 py-0.5 font-mono shadow-sm z-10">
+                        🔥 COMBO (+{Math.round((nextMult - 1) * 100)}% DMG)
+                      </div>
+                    )}
+
                     {/* Mastery background subtle purple glow for high mastery */}
                     {mLvl > 1 && (
                       <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 blur-2xl pointer-events-none rounded-full" />
@@ -984,6 +1137,9 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                       <div className="min-w-0 flex-1 pr-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="font-bold text-white text-sm truncate">{spell.name}</span>
+                          <span className={`text-[9px] font-extrabold tracking-wider px-1.5 py-0.5 rounded font-mono shrink-0 border ${spellElem.borderColor} ${spellElem.badgeBg}`}>
+                            {spellElem.icon} {spellElem.elementName}
+                          </span>
                           <span className={`text-[9px] font-extrabold tracking-wider px-1.5 py-0.5 rounded font-mono shrink-0 ${
                             mLvl >= 5 
                               ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 shadow-[0_2px_5px_rgba(245,158,11,0.35)]'

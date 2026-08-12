@@ -524,3 +524,68 @@ export function rollMagicGacha(count: number, playerLevel: number, reincarnation
   
   return results;
 }
+
+export interface ElementInfo {
+  id: string;
+  elementName: string;
+  icon: string;
+  color: string;
+  badgeBg: string;
+  borderColor: string;
+  glowColor: string;
+}
+
+export const getSpellElementInfo = (spell: Spell): ElementInfo => {
+  if (spell.element) {
+    switch (spell.element) {
+      case 'fire':
+        return { id: 'fire', elementName: '炎属性', icon: '🔥', color: 'from-orange-500 to-red-600', badgeBg: 'bg-red-950/90 text-red-300', borderColor: 'border-red-500/60', glowColor: 'rgba(239, 68, 68, 0.5)' };
+      case 'ice':
+        return { id: 'ice', elementName: '氷属性', icon: '❄️', color: 'from-cyan-400 to-blue-600', badgeBg: 'bg-cyan-950/90 text-cyan-300', borderColor: 'border-cyan-500/60', glowColor: 'rgba(6, 182, 212, 0.5)' };
+      case 'lightning':
+        return { id: 'lightning', elementName: '雷属性', icon: '⚡', color: 'from-amber-300 to-yellow-500', badgeBg: 'bg-amber-950/90 text-amber-300', borderColor: 'border-amber-500/60', glowColor: 'rgba(245, 158, 11, 0.5)' };
+      case 'wind':
+        return { id: 'wind', elementName: '風属性', icon: '🌪️', color: 'from-emerald-400 to-teal-600', badgeBg: 'bg-emerald-950/90 text-emerald-300', borderColor: 'border-emerald-500/60', glowColor: 'rgba(16, 185, 129, 0.5)' };
+      case 'holy':
+        return { id: 'holy', elementName: '聖属性', icon: '✨', color: 'from-yellow-200 via-amber-300 to-amber-500', badgeBg: 'bg-yellow-950/90 text-yellow-200', borderColor: 'border-yellow-400/60', glowColor: 'rgba(250, 204, 21, 0.5)' };
+      case 'dark':
+        return { id: 'dark', elementName: '闇属性', icon: '💀', color: 'from-purple-600 to-fuchsia-800', badgeBg: 'bg-purple-950/90 text-purple-300', borderColor: 'border-purple-500/60', glowColor: 'rgba(168, 85, 247, 0.5)' };
+      default:
+        break;
+    }
+  }
+
+  // Auto detect if not explicitly set
+  const sType = spell.statusEffect?.type;
+  const sName = (spell.name + ' ' + spell.id + ' ' + (spell.desc || '')).toLowerCase();
+
+  if (sType === 'burn' || /火|炎|ファイア|フレイム|インフェルノ|メテオ|プロミネンス|バーン|爆|fire|flame/.test(sName)) {
+    return { id: 'fire', elementName: '炎属性', icon: '🔥', color: 'from-orange-500 to-red-600', badgeBg: 'bg-red-950/90 text-red-300', borderColor: 'border-red-500/60', glowColor: 'rgba(239, 68, 68, 0.5)' };
+  }
+  if (sType === 'freeze' || /氷|アイス|フリーズ|フロスト|ランス|ブリザード|コキュートス|絶対零度|ice|freeze/.test(sName)) {
+    return { id: 'ice', elementName: '氷属性', icon: '❄️', color: 'from-cyan-400 to-blue-600', badgeBg: 'bg-cyan-950/90 text-cyan-300', borderColor: 'border-cyan-500/60', glowColor: 'rgba(6, 182, 212, 0.5)' };
+  }
+  if (sType === 'paralyze' || /雷|ボルト|サンダー|トール|スパーク|迅雷|ライトニング|thunder|bolt/.test(sName)) {
+    return { id: 'lightning', elementName: '雷属性', icon: '⚡', color: 'from-amber-300 to-yellow-500', badgeBg: 'bg-amber-950/90 text-amber-300', borderColor: 'border-amber-500/60', glowColor: 'rgba(245, 158, 11, 0.5)' };
+  }
+  if (/風|ウィンド|ヴォルテックス|ストーム|サイクロン|疾風|カッター|wind|gale/.test(sName)) {
+    return { id: 'wind', elementName: '風属性', icon: '🌪️', color: 'from-emerald-400 to-teal-600', badgeBg: 'bg-emerald-950/90 text-emerald-300', borderColor: 'border-emerald-500/60', glowColor: 'rgba(16, 185, 129, 0.5)' };
+  }
+  if (spell.effectType === 'heal' || /聖|ホーリー|ヒール|キュア|リカバリ|ディバイン|ジャッジメント|光|holy|heal/.test(sName)) {
+    return { id: 'holy', elementName: '聖属性', icon: '✨', color: 'from-yellow-200 via-amber-300 to-amber-500', badgeBg: 'bg-yellow-950/90 text-yellow-200', borderColor: 'border-yellow-400/60', glowColor: 'rgba(250, 204, 21, 0.5)' };
+  }
+  if (spell.effectType === 'drain' || sType === 'poison' || /闇|ダーク|アビス|ドレイン|ヘル|カオス|シャドウ|毒|dark|drain|shadow/.test(sName)) {
+    return { id: 'dark', elementName: '闇属性', icon: '💀', color: 'from-purple-600 to-fuchsia-800', badgeBg: 'bg-purple-950/90 text-purple-300', borderColor: 'border-purple-500/60', glowColor: 'rgba(168, 85, 247, 0.5)' };
+  }
+
+  return { id: 'arcane', elementName: '魔導', icon: '🔮', color: 'from-indigo-500 to-purple-600', badgeBg: 'bg-slate-900 text-slate-300', borderColor: 'border-indigo-500/40', glowColor: 'rgba(99, 102, 241, 0.5)' };
+};
+
+export const getComboMultiplier = (comboCount: number): number => {
+  if (comboCount <= 1) return 1.0;
+  if (comboCount === 2) return 1.25; // +25%
+  if (comboCount === 3) return 1.55; // +55%
+  if (comboCount === 4) return 1.90; // +90%
+  return 2.35;                       // +135% (Max Combo 5+)
+};
+

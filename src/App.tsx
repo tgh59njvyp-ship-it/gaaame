@@ -18,7 +18,7 @@ import { HubTabs } from './components/HubTabs';
 import { createLogEntry, appendLogToCharacter } from './utils/logHelper';
 import { evaluateTitles, getTitleBonuses } from './utils/titleUtils';
 import { getSkillStatsBonus } from './utils/skillUtils';
-import { Backpack, MapPin, ShieldAlert, Sparkles, User, Award } from 'lucide-react';
+import { Backpack, MapPin, ShieldAlert, Sparkles, User, Award, RotateCcw, Trash2, AlertTriangle } from 'lucide-react';
 
 export default function App() {
   const [phase, setPhase] = useState<GamePhase>('creation');
@@ -32,6 +32,7 @@ export default function App() {
   const [pendingLoot, setPendingLoot] = useState<Item | null>(null);
   const [notificationMsg, setNotificationMsg] = useState<string | null>(null);
   const [hasSaveData, setHasSaveData] = useState<boolean>(false);
+  const [showResetModal, setShowResetModal] = useState<boolean>(false);
   const [reincarnationMeta, setReincarnationMeta] = useState<{
     count: number;
     buffs?: {
@@ -431,7 +432,7 @@ export default function App() {
             AETHER DRIFT: ROGUE
           </span>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {character && phase !== 'creation' && phase !== 'victory' && phase !== 'gameover' && (() => {
             const titleBonus = getTitleBonuses(character.title);
             const skillBonus = getSkillStatsBonus(character);
@@ -444,7 +445,7 @@ export default function App() {
                 </div>
                 <button
                   onClick={() => setShowInventory(true)}
-                  className="min-h-[40px] px-4 bg-[#1a1a1e] hover:bg-[#222228] border border-[#c4a661]/60 text-[#c4a661] text-xs font-bold rounded-lg transition flex items-center gap-2 cursor-pointer shadow-md"
+                  className="min-h-[36px] px-3 bg-[#1a1a1e] hover:bg-[#222228] border border-[#c4a661]/60 text-[#c4a661] text-xs font-bold rounded-lg transition flex items-center gap-1.5 cursor-pointer shadow-md"
                 >
                   <Backpack className="w-4 h-4" />
                   <span>ステータス / バッグ</span>
@@ -452,6 +453,14 @@ export default function App() {
               </>
             );
           })()}
+          <button
+            onClick={() => setShowResetModal(true)}
+            className="min-h-[36px] px-3 bg-[#181010] hover:bg-[#281414] border border-[#522222] hover:border-red-500 text-[#e57373] text-xs font-bold rounded-lg transition flex items-center gap-1.5 cursor-pointer shadow-sm shrink-0"
+            title="セーブデータを完全削除して初期化"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">データ初期化</span>
+          </button>
         </div>
       </header>
 
@@ -483,6 +492,16 @@ export default function App() {
                 floors={floors}
                 onSelectFloor={handleSelectFloor}
                 onOpenInventory={() => setShowInventory(true)}
+                onUpdateCharacter={handleUpdateCharacter}
+                onShowMessage={showNotification}
+                onSelectSpecialBattle={(enemy) => {
+                  setCurrentEnemy(enemy);
+                  setPhase('battle');
+                }}
+                onLoadSpecialFloors={(specialFloors, stageName) => {
+                  setFloors(specialFloors);
+                  showNotification(`「${stageName}」のマップを読み込みました！`);
+                }}
               />
             )}
 
@@ -566,6 +585,58 @@ export default function App() {
           character={character}
           onClaim={handleClaimLoot}
         />
+      )}
+
+      {/* Global Hard Reset Confirmation Modal */}
+      {showResetModal && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-[#120808] border-2 border-red-600 max-w-md w-full rounded-3xl p-6 shadow-[0_0_50px_rgba(220,38,38,0.3)] text-[#e2e2e2] relative">
+            <div className="flex items-center gap-3 text-red-500 mb-3">
+              <div className="w-10 h-10 rounded-2xl bg-red-950/80 border border-red-500/60 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-6 h-6 text-red-500" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-red-400">【警告】全データ完全初期化</h3>
+                <p className="text-xs text-red-300/80">セーブデータの完全削除</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed mb-4">
+              これまでの進行状況、キャラクター、獲得した称号、所持アイテム、および <strong className="text-amber-400">転生・昇華履歴（世代数）</strong> のすべてのセーブデータを完全に削除して最初からやり直しますか？
+            </p>
+
+            <div className="p-3 bg-red-950/40 rounded-xl border border-red-900/60 text-[11px] text-red-300 font-bold mb-6">
+              ※ この操作は取り消せません。完全な初回状態に戻ります。
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowResetModal(false)}
+                className="flex-1 py-3 bg-[#181820] hover:bg-[#252530] border border-[#3a3528] text-slate-300 font-bold text-xs rounded-xl transition cursor-pointer"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={() => {
+                  localStorage.removeItem('astral_rogue_save_v1');
+                  localStorage.removeItem('astral_rogue_reinc_v1');
+                  localStorage.clear();
+                  setCharacter(null);
+                  setHasSaveData(false);
+                  setReincarnationMeta({ count: 0 });
+                  setPhase('creation');
+                  setShowInventory(false);
+                  setShowResetModal(false);
+                  showNotification('【全データ初期化完了】セーブデータおよび転生履歴を完全消去しました。');
+                }}
+                className="flex-1 py-3 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white font-black text-xs rounded-xl shadow-lg border border-red-400/60 flex items-center justify-center gap-1.5 transition cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4 text-white" />
+                完全に初期化する
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <footer className="h-12 border-t border-[#2d2d30] hidden sm:flex items-center px-10 gap-10 bg-[#0f0f12] text-[10px] font-sans tracking-widest text-[#555] uppercase">

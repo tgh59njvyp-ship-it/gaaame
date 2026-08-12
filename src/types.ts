@@ -43,6 +43,7 @@ export interface Spell {
   power: number;
   desc: string;
   effectType: 'damage' | 'heal' | 'buff' | 'debuff' | 'drain';
+  element?: 'fire' | 'ice' | 'wind' | 'lightning' | 'holy' | 'dark' | 'arcane';
   rarity?: 'common' | 'rare' | 'epic' | 'legendary';
   plusLevel?: number;
   minReincarnationReq?: number;
