@@ -1,0 +1,7 @@
+{
+  "name": "Astral Rogue: 元素の迷宮",
+  "description": "最初に種族、魔法の種類、役職を選択してステージを攻略していく本格ローグライクRPG",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
