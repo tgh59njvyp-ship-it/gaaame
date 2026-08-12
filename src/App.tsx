@@ -32,17 +32,78 @@ export default function App() {
   const [pendingLoot, setPendingLoot] = useState<Item | null>(null);
   const [notificationMsg, setNotificationMsg] = useState<string | null>(null);
   const [hasSaveData, setHasSaveData] = useState<boolean>(false);
+  const [reincarnationMeta, setReincarnationMeta] = useState<{
+    count: number;
+    buffs?: {
+      hpBonusPct: number;
+      mpBonusPct: number;
+      atkBonusPct: number;
+      defBonusPct: number;
+      expGoldBonusPct: number;
+    };
+  }>({ count: 0 });
 
   useEffect(() => {
     try {
       const saved = localStorage.getItem('astral_rogue_save_v1');
       if (saved) {
         setHasSaveData(true);
+        const parsed = JSON.parse(saved);
+        if (parsed.character?.reincarnationCount) {
+          setReincarnationMeta({
+            count: parsed.character.reincarnationCount,
+            buffs: parsed.character.reincarnationBuffs,
+          });
+        }
+      }
+      const reincSaved = localStorage.getItem('astral_rogue_reinc_v1');
+      if (reincSaved) {
+        const parsedReinc = JSON.parse(reincSaved);
+        setReincarnationMeta((prev) => ({
+          count: Math.max(prev.count, parsedReinc.count || 0),
+          buffs: parsedReinc.buffs || prev.buffs,
+        }));
       }
     } catch (e) {
       console.error(e);
     }
   }, []);
+
+  const handleReincarnate = () => {
+    const currentCount = character?.reincarnationCount || reincarnationMeta.count || 0;
+    const nextCount = currentCount + 1;
+
+    const currentBuffs = character?.reincarnationBuffs || reincarnationMeta.buffs || {
+      hpBonusPct: 0,
+      mpBonusPct: 0,
+      atkBonusPct: 0,
+      defBonusPct: 0,
+      expGoldBonusPct: 0,
+    };
+
+    const newBuffs = {
+      hpBonusPct: currentBuffs.hpBonusPct + 25,
+      mpBonusPct: currentBuffs.mpBonusPct + 25,
+      atkBonusPct: currentBuffs.atkBonusPct + 15,
+      defBonusPct: currentBuffs.defBonusPct + 15,
+      expGoldBonusPct: currentBuffs.expGoldBonusPct + 20,
+    };
+
+    const updatedMeta = { count: nextCount, buffs: newBuffs };
+    setReincarnationMeta(updatedMeta);
+
+    try {
+      localStorage.setItem('astral_rogue_reinc_v1', JSON.stringify(updatedMeta));
+    } catch (e) {
+      console.error(e);
+    }
+
+    clearSaveData();
+    setCharacter(null);
+    setShowInventory(false);
+    setPhase('creation');
+    showNotification(`【昇華成就】第 ${nextCount} 世代の英雄として転生！ 8種の伝説種族と7種の秘奥義魔法系統が開放されました！`);
+  };
 
   const saveGameToStorage = (char: CharacterState, stage: number, flrs: FloorNode[], phs: GamePhase) => {
     try {
@@ -390,6 +451,8 @@ export default function App() {
             onStartAdventure={handleStartAdventure}
             onContinueAdventure={handleContinueAdventure}
             hasSavedGame={hasSaveData}
+            reincarnationCount={reincarnationMeta.count}
+            reincarnationBuffs={reincarnationMeta.buffs}
           />
         )}
         {phase === 'hub' && character && (
@@ -482,6 +545,7 @@ export default function App() {
           character={character}
           onClose={() => setShowInventory(false)}
           onEquipItem={handleUpdateCharacter}
+          onTriggerReincarnate={handleReincarnate}
         />
       )}
 

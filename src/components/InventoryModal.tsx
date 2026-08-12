@@ -2,21 +2,29 @@ import React, { useState } from 'react';
 import { CharacterState, Item } from '../types';
 import { getTitleBonuses, TITLES } from '../utils/titleUtils';
 import { getSkillStatsBonus, ALL_SKILLS, unlockSkillNode, SkillNode } from '../utils/skillUtils';
+import { calculateCombatPower, canReincarnate, REINCARNATION_POWER_REQ } from '../utils/combatPower';
 import { 
   X, Sword, Shield, Backpack, Sparkles, Check, Award, Share2, 
-  Lock, ArrowRight, Zap, RefreshCw, Star, Info
+  Lock, ArrowRight, Zap, RefreshCw, Star, Info, Flame, FlameKindling, Crown
 } from 'lucide-react';
 
 interface InventoryModalProps {
   character: CharacterState;
   onClose: () => void;
   onEquipItem: (updatedChar: CharacterState) => void;
+  onTriggerReincarnate?: () => void;
 }
 
-export const InventoryModal: React.FC<InventoryModalProps> = ({ character, onClose, onEquipItem }) => {
+export const InventoryModal: React.FC<InventoryModalProps> = ({ 
+  character, 
+  onClose, 
+  onEquipItem,
+  onTriggerReincarnate 
+}) => {
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'status' | 'skills'>('status');
   const [skillFeedback, setSkillFeedback] = useState<{ text: string; isError: boolean } | null>(null);
+  const [showReincarnateConfirm, setShowReincarnateConfirm] = useState(false);
 
   // Default to developer_mode if no title set
   const currentTitleId = character.title || 'developer_mode';
@@ -32,14 +40,10 @@ export const InventoryModal: React.FC<InventoryModalProps> = ({ character, onClo
   const totalMaxMp = character.maxMp + titleBonus.mp + skillBonus.mp;
   const totalCrit = Math.min(100, character.crit + titleBonus.crit + skillBonus.crit);
 
-  // Combat Power (戦闘力) Formula
-  const combatPower = Math.floor(
-    totalAtk * 18 +
-    totalDef * 15 +
-    totalMaxHp * 0.6 +
-    totalMaxMp * 0.5 +
-    totalCrit * 12
-  );
+  // Combat Power
+  const combatPower = calculateCombatPower(character);
+  const isReincarnationEligible = canReincarnate(character);
+  const reincCount = character.reincarnationCount || 0;
 
   const handleEquip = (item: Item, index: number) => {
     let newEquipment = { ...character.equipment };
@@ -291,6 +295,44 @@ https://ai.studio/build
               </div>
               <div className="text-xs text-slate-400 max-w-sm">
                 攻撃力、防御力、HP、MP、会心率を独自フォーミュラで数値化した総合戦闘力。装備や称号、**スキルツリー**を強化して極限を引き上げろ！
+              </div>
+            </div>
+
+            {/* Reincarnation System (意志を継ぐものとして昇華・転生) Card */}
+            <div className="bg-gradient-to-r from-amber-950/40 via-purple-950/40 to-slate-900 border-2 border-amber-500/50 rounded-2xl p-5 shadow-xl relative overflow-hidden">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2 text-amber-300 font-bold text-sm mb-1">
+                    <Flame className="w-5 h-5 text-amber-400 animate-pulse" />
+                    <span>意志を継ぐものとして昇華 (転生システム)</span>
+                    <span className="text-xs bg-amber-950 text-amber-300 border border-amber-700/60 px-2 py-0.5 rounded-full font-mono">
+                      転生世代: 第 {reincCount} 世代
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300 leading-relaxed max-w-lg">
+                    戦闘力が <strong className="text-amber-400">{REINCARNATION_POWER_REQ} CP</strong> 以上の領域に達すると、魂を昇華して転生可能！ 恒久バフを獲得し、<strong className="text-purple-300">8種の伝説種族＆7種の秘奥義魔法系統</strong> が新たに解放されます。
+                  </p>
+                </div>
+
+                <div className="shrink-0 flex flex-col items-end gap-2">
+                  {isReincarnationEligible ? (
+                    <button
+                      onClick={() => setShowReincarnateConfirm(true)}
+                      className="w-full sm:w-auto px-5 py-3 bg-gradient-to-r from-amber-500 via-purple-600 to-indigo-600 hover:from-amber-400 hover:to-indigo-500 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-amber-950/50 border border-amber-300/60 flex items-center justify-center gap-2 transition transform hover:scale-105 active:scale-95 cursor-pointer animate-pulse"
+                    >
+                      <Sparkles className="w-4 h-4 text-amber-200" />
+                      意志を継ぐものとして昇華する！
+                    </button>
+                  ) : (
+                    <div className="text-right">
+                      <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-950/80 border border-slate-800 text-slate-400 rounded-xl text-xs font-mono font-bold">
+                        <Lock className="w-3.5 h-3.5 text-slate-500" />
+                        到達CP: {combatPower} / {REINCARNATION_POWER_REQ}
+                      </span>
+                      <p className="text-[10px] text-slate-500 mt-1">戦闘力 {REINCARNATION_POWER_REQ} CP 到達で解禁</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -690,6 +732,78 @@ https://ai.studio/build
         )}
 
       </div>
+
+      {/* Reincarnation Confirmation Modal */}
+      {showReincarnateConfirm && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-lg z-50 flex items-center justify-center p-4">
+          <div className="bg-[#0f0f14] border-2 border-amber-400 max-w-lg w-full rounded-3xl p-6 shadow-[0_0_50px_rgba(245,158,11,0.3)] text-slate-100 relative animate-fadeIn">
+            <div className="flex items-center gap-3 text-amber-400 mb-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-950/80 border border-amber-500/60 flex items-center justify-center">
+                <Crown className="w-6 h-6 text-amber-400" />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-amber-300">【意志を継ぐものとして昇華】</h3>
+                <p className="text-xs text-amber-200/80">転生・魂の継承と超絶覚醒</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed mb-4">
+              現世の冒険を昇華させ、意志を引き継ぎ次の世代へと転生しますか？
+            </p>
+
+            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2 mb-6 text-xs">
+              <div className="font-bold text-amber-400 mb-1 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-amber-400" /> 継承される特典と恩恵:
+              </div>
+              <ul className="space-y-1.5 text-slate-300 font-medium">
+                <li className="flex items-center gap-2 text-emerald-400">
+                  ✓ 転生カウント +1（第 {(reincCount + 1)} 世代へ進化）
+                </li>
+                <li className="flex items-center gap-2 text-amber-300">
+                  ✓ 全初期ステータス(HP/MP) +25%、(攻撃/防御) +15% 恒久バフ
+                </li>
+                <li className="flex items-center gap-2 text-amber-300">
+                  ✓ 獲得ゴールド・経験値 +20% 永久ブースト
+                </li>
+                <li className="flex items-center gap-2 text-purple-300">
+                  ✓ 8種の伝説種族（龍人・精霊王・狂戦士・星の神子・虚無の魔神等）解放！
+                </li>
+                <li className="flex items-center gap-2 text-purple-300">
+                  ✓ 7種の秘奥義魔法系統（空間・時間・龍炎・星輝・召喚・重力・音波）解放！
+                </li>
+                <li className="flex items-center gap-2 text-[#c4a661]">
+                  ✓ 解放済み称号・実績ライセンス維持
+                </li>
+              </ul>
+              <div className="text-[10px] text-slate-500 pt-2 border-t border-slate-900">
+                ※ Lv、フロア進行状況、初期装備・標準消耗品はリセットされ、新しく作成された第 {reincCount + 1} 世代の英雄として冒険者作成画面に戻ります。
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowReincarnateConfirm(false)}
+                className="flex-1 py-3 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 font-bold text-xs rounded-xl transition cursor-pointer"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={() => {
+                  setShowReincarnateConfirm(false);
+                  onClose();
+                  if (onTriggerReincarnate) {
+                    onTriggerReincarnate();
+                  }
+                }}
+                className="flex-1 py-3 bg-gradient-to-r from-amber-500 via-orange-500 to-purple-600 hover:from-amber-400 hover:to-purple-500 text-white font-black text-xs rounded-xl shadow-lg shadow-amber-950/50 border border-amber-300/80 flex items-center justify-center gap-1.5 transition cursor-pointer animate-pulse"
+              >
+                <Flame className="w-4 h-4 text-amber-200" />
+                昇華・転生を実行する！
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

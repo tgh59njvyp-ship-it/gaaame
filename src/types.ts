@@ -1,5 +1,32 @@
-export type RaceId = 'human' | 'elf' | 'dwarf' | 'demon' | 'angel';
-export type MagicTypeId = 'fire' | 'ice' | 'thunder' | 'holy' | 'dark';
+export type RaceId = 
+  | 'human' 
+  | 'elf' 
+  | 'dwarf' 
+  | 'demon' 
+  | 'angel'
+  | 'dragonkin'
+  | 'spirit_king'
+  | 'berserker'
+  | 'celestial'
+  | 'void_archdemon'
+  | 'vampire_princess'
+  | 'kitsune'
+  | 'automaton';
+
+export type MagicTypeId = 
+  | 'fire' 
+  | 'ice' 
+  | 'thunder' 
+  | 'holy' 
+  | 'dark'
+  | 'spatial'
+  | 'chrono'
+  | 'draconic'
+  | 'stellar'
+  | 'summoning'
+  | 'gravity'
+  | 'sonic';
+
 export type ClassId = 'warrior' | 'mage' | 'thief' | 'cleric' | 'knight';
 
 export interface RaceInfo {
@@ -7,6 +34,8 @@ export interface RaceInfo {
   name: string;
   desc: string;
   icon: string;
+  isReincarnationOnly?: boolean;
+  minReincarnationReq?: number;
   bonuses: {
     hp: number;
     mp: number;
@@ -28,6 +57,8 @@ export interface MagicTypeInfo {
   color: string;
   element: string;
   spells: Spell[];
+  isReincarnationOnly?: boolean;
+  minReincarnationReq?: number;
 }
 
 export interface Spell {
@@ -124,6 +155,14 @@ export interface CharacterState {
   titlesUnlocked?: string[];
   sp: number;
   unlockedSkills: string[];
+  reincarnationCount?: number;
+  reincarnationBuffs?: {
+    hpBonusPct: number;
+    mpBonusPct: number;
+    atkBonusPct: number;
+    defBonusPct: number;
+    expGoldBonusPct: number;
+  };
   stats: {
     battlesWon: number;
     damageDealt: number;
