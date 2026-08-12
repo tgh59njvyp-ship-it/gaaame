@@ -104,6 +104,29 @@ export interface AdventureLogEntry {
   exp?: number;
 }
 
+export interface BeginnerQuest {
+  id: string;
+  title: string;
+  desc: string;
+  gemReward: number;
+  targetCount: number;
+  currentCount: number;
+  isCompleted: boolean;
+  isClaimed: boolean;
+  icon: string;
+}
+
+export interface EquipmentPreset {
+  id: 'setA' | 'setB';
+  name: string;
+  equipment: {
+    weapon: Item | null;
+    armor: Item | null;
+    accessory: Item | null;
+  };
+  savedAt?: string;
+}
+
 export interface CharacterState {
   name: string;
   race: RaceInfo;
@@ -121,12 +144,21 @@ export interface CharacterState {
   spd: number;
   crit: number;
   gold: number;
+  gems: number;
+  gacha10Tickets: number;
+  eventTokens: number;
+  lastRouletteDate?: string;
+  beginnerQuests: BeginnerQuest[];
   spells: Spell[];
   inventory: Item[];
   equipment: {
     weapon: Item | null;
     armor: Item | null;
     accessory: Item | null;
+  };
+  equipmentPresets?: {
+    setA?: EquipmentPreset | null;
+    setB?: EquipmentPreset | null;
   };
   quests: GuildQuest[];
   logs: AdventureLogEntry[];

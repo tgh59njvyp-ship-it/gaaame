@@ -54,8 +54,8 @@ export const LootModal: React.FC<LootModalProps> = ({ item, character, onClaim }
   const isEquippable = item.type === 'weapon' || item.type === 'armor' || item.type === 'accessory';
 
   return (
-    <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fadeIn">
-      <div className={`w-full max-w-md rounded-2xl p-6 border shadow-2xl text-center relative ${getRarityColor(item.rarity)}`}>
+    <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-backdropFadeIn">
+      <div className={`w-full max-w-md rounded-2xl p-6 border shadow-2xl text-center relative animate-modalExpand ${getRarityColor(item.rarity)}`}>
         <div className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center mb-4 bg-slate-950 border border-slate-800 shadow-lg">
           {item.type === 'weapon' ? <Sword className="w-8 h-8 text-red-400" /> :
            item.type === 'armor' ? <Shield className="w-8 h-8 text-blue-400" /> :

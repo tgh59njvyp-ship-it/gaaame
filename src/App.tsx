@@ -15,6 +15,9 @@ import { GuildScreen } from './components/GuildScreen';
 import { GachaScreen } from './components/GachaScreen';
 import { AdventureLog } from './components/AdventureLog';
 import { HubTabs } from './components/HubTabs';
+import { RouletteModal } from './components/RouletteModal';
+import { BeginnerQuestsModal } from './components/BeginnerQuestsModal';
+import { getInitialBeginnerQuests } from './utils/beginnerQuests';
 import { createLogEntry, appendLogToCharacter } from './utils/logHelper';
 import { evaluateTitles, getTitleBonuses } from './utils/titleUtils';
 import { getSkillStatsBonus } from './utils/skillUtils';
@@ -29,6 +32,8 @@ export default function App() {
   const [currentEnemy, setCurrentEnemy] = useState<Enemy | null>(null);
   const [activeFloor, setActiveFloor] = useState<FloorNode | null>(null);
   const [showInventory, setShowInventory] = useState<boolean>(false);
+  const [showRouletteModal, setShowRouletteModal] = useState<boolean>(false);
+  const [showBeginnerQuestsModal, setShowBeginnerQuestsModal] = useState<boolean>(false);
   const [pendingLoot, setPendingLoot] = useState<Item | null>(null);
   const [notificationMsg, setNotificationMsg] = useState<string | null>(null);
   const [hasSaveData, setHasSaveData] = useState<boolean>(false);
@@ -53,6 +58,10 @@ export default function App() {
         const loadedChar = parsed.character;
         if (loadedChar) {
           if (loadedChar.sp === undefined) loadedChar.sp = 0;
+          if (loadedChar.gems === undefined) loadedChar.gems = 3000;
+          if (loadedChar.gacha10Tickets === undefined) loadedChar.gacha10Tickets = 0;
+          if (loadedChar.eventTokens === undefined) loadedChar.eventTokens = 0;
+          if (!loadedChar.beginnerQuests) loadedChar.beginnerQuests = getInitialBeginnerQuests();
           if (!loadedChar.unlockedSkills) loadedChar.unlockedSkills = [];
           setCharacter(loadedChar);
           setCurrentStage(parsed.currentStage || 1);
@@ -494,6 +503,8 @@ export default function App() {
                 onOpenInventory={() => setShowInventory(true)}
                 onUpdateCharacter={handleUpdateCharacter}
                 onShowMessage={showNotification}
+                onOpenRoulette={() => setShowRouletteModal(true)}
+                onOpenBeginnerQuests={() => setShowBeginnerQuestsModal(true)}
                 onSelectSpecialBattle={(enemy) => {
                   setCurrentEnemy(enemy);
                   setPhase('battle');
@@ -579,6 +590,24 @@ export default function App() {
         />
       )}
 
+      {showRouletteModal && character && (
+        <RouletteModal
+          character={character}
+          onClose={() => setShowRouletteModal(false)}
+          onUpdateCharacter={handleUpdateCharacter}
+          onShowMessage={showNotification}
+        />
+      )}
+
+      {showBeginnerQuestsModal && character && (
+        <BeginnerQuestsModal
+          character={character}
+          onClose={() => setShowBeginnerQuestsModal(false)}
+          onUpdateCharacter={handleUpdateCharacter}
+          onShowMessage={showNotification}
+        />
+      )}
+
       {pendingLoot && character && (
         <LootModal
           item={pendingLoot}
@@ -589,8 +618,8 @@ export default function App() {
 
       {/* Global Hard Reset Confirmation Modal */}
       {showResetModal && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-[#120808] border-2 border-red-600 max-w-md w-full rounded-3xl p-6 shadow-[0_0_50px_rgba(220,38,38,0.3)] text-[#e2e2e2] relative">
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-backdropFadeIn">
+          <div className="bg-[#120808] border-2 border-red-600 max-w-md w-full rounded-3xl p-6 shadow-[0_0_50px_rgba(220,38,38,0.3)] text-[#e2e2e2] relative animate-modalExpand">
             <div className="flex items-center gap-3 text-red-500 mb-3">
               <div className="w-10 h-10 rounded-2xl bg-red-950/80 border border-red-500/60 flex items-center justify-center shrink-0">
                 <AlertTriangle className="w-6 h-6 text-red-500" />

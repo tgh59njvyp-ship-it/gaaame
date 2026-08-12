@@ -26,13 +26,37 @@
   background: #c4a661;
 }
 
+@keyframes backdropFadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.animate-backdropFadeIn {
+  animation: backdropFadeIn 0.22s ease-out forwards;
+}
+
+@keyframes modalExpand {
+  0% {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-modalExpand {
+  animation: modalExpand 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  0% { opacity: 0; transform: scale(0.92); }
+  100% { opacity: 1; transform: scale(1); }
 }
 
 .animate-fadeIn {
-  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes shake {
@@ -60,6 +84,54 @@
 .animate-gold-glow {
   animation: goldGlow 2s infinite ease-in-out;
 }
+
+/* Custom CSS for Rank Up Promotion Effect & Ornate Gold Badge */
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spinSlow 12s linear infinite;
+}
+
+@keyframes spinSlowReverse {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+.animate-spin-slow-reverse {
+  animation: spinSlowReverse 18s linear infinite;
+}
+
+@keyframes goldFlash {
+  0% { opacity: 0.95; background-color: rgba(254, 240, 138, 0.9); }
+  40% { opacity: 0.7; background-color: rgba(245, 158, 11, 0.6); }
+  100% { opacity: 0; pointer-events: none; }
+}
+
+.animate-gold-flash {
+  animation: goldFlash 1.2s ease-out forwards;
+}
+
+@keyframes metallicShimmer {
+  0% { transform: translateX(-150%) rotate(25deg); }
+  50%, 100% { transform: translateX(250%) rotate(25deg); }
+}
+
+.animate-metallic-shimmer {
+  animation: metallicShimmer 3.5s infinite ease-in-out;
+}
+
+@keyframes badgeFloat {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(-4px) scale(1.02); }
+}
+
+.animate-badge-float {
+  animation: badgeFloat 4s ease-in-out infinite;
+}
+
 
 
 

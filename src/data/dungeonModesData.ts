@@ -1,6 +1,6 @@
 import { Enemy, FloorNode } from '../types';
 
-export type DungeonCategory = 'story' | 'elemental' | 'endless' | 'vault' | 'raid';
+export type DungeonCategory = 'story' | 'event' | 'elemental' | 'endless' | 'vault' | 'raid';
 
 export interface ElementalTowerInfo {
   id: string;

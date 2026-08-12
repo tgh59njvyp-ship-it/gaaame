@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { CharacterState, Item } from '../types';
+import { CharacterState, Item, EquipmentPreset } from '../types';
 import { getTitleBonuses, TITLES } from '../utils/titleUtils';
 import { getSkillStatsBonus, ALL_SKILLS, unlockSkillNode, SkillNode } from '../utils/skillUtils';
 import { calculateCombatPower, canReincarnate, getReincarnationPowerReq, getReincarnationLevelReq } from '../utils/combatPower';
 import { 
   X, Sword, Shield, Backpack, Sparkles, Check, Award, Share2, 
-  Lock, ArrowRight, Zap, RefreshCw, Star, Info, Flame, FlameKindling, Crown, Trash2, AlertTriangle
+  Lock, ArrowRight, Zap, RefreshCw, Star, Info, Flame, FlameKindling, Crown, Trash2, AlertTriangle,
+  Save, Edit3, Layers, ArrowUpDown, CheckCircle2, Bookmark, ShieldOff
 } from 'lucide-react';
 
 interface InventoryModalProps {
@@ -26,6 +27,8 @@ export const InventoryModal: React.FC<InventoryModalProps> = ({
   const [skillFeedback, setSkillFeedback] = useState<{ text: string; isError: boolean } | null>(null);
   const [showReincarnateConfirm, setShowReincarnateConfirm] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [editingPresetId, setEditingPresetId] = useState<'setA' | 'setB' | null>(null);
+  const [presetNameInput, setPresetNameInput] = useState<string>('');
   const [selectedItemDetail, setSelectedItemDetail] = useState<{
     item: Item;
     isEquipped: boolean;
@@ -33,33 +36,47 @@ export const InventoryModal: React.FC<InventoryModalProps> = ({
     equipType?: 'weapon' | 'armor' | 'accessory';
   } | null>(null);
 
-  const getItemStatDiff = (item: Item) => {
-    if (item.type !== 'weapon' && item.type !== 'armor' && item.type !== 'accessory') return null;
+  const getEquipmentComparison = (candidateItem: Item) => {
+    if (candidateItem.type !== 'weapon' && candidateItem.type !== 'armor' && candidateItem.type !== 'accessory') {
+      return null;
+    }
 
     let equippedInSlot: Item | null = null;
-    if (item.type === 'weapon') equippedInSlot = character.equipment.weapon;
-    if (item.type === 'armor') equippedInSlot = character.equipment.armor;
-    if (item.type === 'accessory') equippedInSlot = character.equipment.accessory;
+    if (candidateItem.type === 'weapon') equippedInSlot = character.equipment.weapon;
+    if (candidateItem.type === 'armor') equippedInSlot = character.equipment.armor;
+    if (candidateItem.type === 'accessory') equippedInSlot = character.equipment.accessory;
 
-    const currentAtk = equippedInSlot?.stats?.atk || 0;
-    const currentDef = equippedInSlot?.stats?.def || 0;
-    const currentHp = equippedInSlot?.stats?.hp || 0;
-    const currentMp = equippedInSlot?.stats?.mp || 0;
-    const currentCrit = equippedInSlot?.stats?.crit || 0;
+    const curAtk = equippedInSlot?.stats?.atk || 0;
+    const curDef = equippedInSlot?.stats?.def || 0;
+    const curHp = equippedInSlot?.stats?.hp || 0;
+    const curMp = equippedInSlot?.stats?.mp || 0;
+    const curSpd = equippedInSlot?.stats?.spd || 0;
+    const curCrit = equippedInSlot?.stats?.crit || 0;
 
-    const newAtk = item.stats?.atk || 0;
-    const newDef = item.stats?.def || 0;
-    const newHp = item.stats?.hp || 0;
-    const newMp = item.stats?.mp || 0;
-    const newCrit = item.stats?.crit || 0;
+    const candidateAtk = candidateItem.stats?.atk || 0;
+    const candidateDef = candidateItem.stats?.def || 0;
+    const candidateHp = candidateItem.stats?.hp || 0;
+    const candidateMp = candidateItem.stats?.mp || 0;
+    const candidateSpd = candidateItem.stats?.spd || 0;
+    const candidateCrit = candidateItem.stats?.crit || 0;
+
+    const stats = [
+      { key: 'atk', label: '⚔️ 攻撃力', cur: curAtk, candidate: candidateAtk, unit: '' },
+      { key: 'def', label: '🛡️ 防御力', cur: curDef, candidate: candidateDef, unit: '' },
+      { key: 'hp', label: '❤️ 最大HP', cur: curHp, candidate: candidateHp, unit: '' },
+      { key: 'mp', label: '✨ 最大MP', cur: curMp, candidate: candidateMp, unit: '' },
+      { key: 'spd', label: '⚡ 素早さ', cur: curSpd, candidate: candidateSpd, unit: '' },
+      { key: 'crit', label: '🎯 会心率', cur: curCrit, candidate: candidateCrit, unit: '%' },
+    ].filter(s => s.cur !== 0 || s.candidate !== 0);
 
     return {
-      equippedName: equippedInSlot ? equippedInSlot.name : 'なし',
-      diffAtk: newAtk - currentAtk,
-      diffDef: newDef - currentDef,
-      diffHp: newHp - currentHp,
-      diffMp: newMp - currentMp,
-      diffCrit: newCrit - currentCrit,
+      equippedItem: equippedInSlot,
+      equippedName: equippedInSlot ? equippedInSlot.name : '（なし）',
+      candidateName: candidateItem.name,
+      stats: stats.map(s => ({
+        ...s,
+        diff: s.candidate - s.cur
+      }))
     };
   };
 
@@ -296,6 +313,200 @@ export const InventoryModal: React.FC<InventoryModalProps> = ({
     onEquipItem(updated);
   };
 
+  // --- Equipment Preset Handlers ---
+  const handleSavePreset = (presetId: 'setA' | 'setB', customName?: string) => {
+    const defaultName = presetId === 'setA' ? 'セットA (アタッカー)' : 'セットB (ガーディアン)';
+    const nameToSave = customName || character.equipmentPresets?.[presetId]?.name || defaultName;
+
+    const newPreset: EquipmentPreset = {
+      id: presetId,
+      name: nameToSave,
+      equipment: {
+        weapon: character.equipment.weapon ? { ...character.equipment.weapon } : null,
+        armor: character.equipment.armor ? { ...character.equipment.armor } : null,
+        accessory: character.equipment.accessory ? { ...character.equipment.accessory } : null,
+      },
+      savedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+
+    const updatedChar: CharacterState = {
+      ...character,
+      equipmentPresets: {
+        ...character.equipmentPresets,
+        [presetId]: newPreset,
+      },
+    };
+
+    onEquipItem(updatedChar);
+    setSkillFeedback({
+      text: `💾 現在の装備構成を【${nameToSave}】に保存しました！`,
+      isError: false,
+    });
+    setTimeout(() => setSkillFeedback(null), 3000);
+  };
+
+  const handleEquipPreset = (presetId: 'setA' | 'setB') => {
+    const preset = character.equipmentPresets?.[presetId];
+    if (!preset) return;
+
+    if (!preset.equipment.weapon && !preset.equipment.armor && !preset.equipment.accessory) {
+      setSkillFeedback({
+        text: `⚠️ 【${preset.name}】には装備品がまだ登録されていません。`,
+        isError: true,
+      });
+      setTimeout(() => setSkillFeedback(null), 3000);
+      return;
+    }
+
+    let currentEq = { ...character.equipment };
+    let currentInv = [...character.inventory];
+    let missingItems: string[] = [];
+
+    const slots: ('weapon' | 'armor' | 'accessory')[] = ['weapon', 'armor', 'accessory'];
+
+    slots.forEach((slot) => {
+      const targetItem = preset.equipment[slot];
+      const currentlyEquipped = currentEq[slot];
+
+      if (!targetItem) {
+        // Preset has no item in this slot -> unequip current item if any
+        if (currentlyEquipped) {
+          currentInv.push(currentlyEquipped);
+          currentEq[slot] = null;
+        }
+      } else {
+        // Check if target item is already equipped
+        if (
+          currentlyEquipped &&
+          (currentlyEquipped.id === targetItem.id ||
+            (currentlyEquipped.name === targetItem.name && currentlyEquipped.type === targetItem.type))
+        ) {
+          return;
+        }
+
+        // Find target item in inventory
+        const invIndex = currentInv.findIndex(
+          (item) => item.id === targetItem.id || (item.name === targetItem.name && item.type === targetItem.type)
+        );
+
+        if (invIndex !== -1) {
+          const [itemToEquip] = currentInv.splice(invIndex, 1);
+          if (currentlyEquipped) {
+            currentInv.push(currentlyEquipped);
+          }
+          currentEq[slot] = itemToEquip;
+        } else {
+          missingItems.push(targetItem.name);
+        }
+      }
+    });
+
+    const updatedChar: CharacterState = {
+      ...character,
+      equipment: currentEq,
+      inventory: currentInv,
+    };
+
+    onEquipItem(updatedChar);
+
+    if (missingItems.length > 0) {
+      setSkillFeedback({
+        text: `⚠️ 【${preset.name}】に切り替えましたが、以下の装備品がバッグに見つかりませんでした: ${missingItems.join(', ')}`,
+        isError: true,
+      });
+    } else {
+      setSkillFeedback({
+        text: `⚔️ 【${preset.name}】へ一括着替え（装備換装）を完了しました！`,
+        isError: false,
+      });
+    }
+    setTimeout(() => setSkillFeedback(null), 3500);
+  };
+
+  const handleSaveRenamedPreset = (presetId: 'setA' | 'setB') => {
+    const existing = character.equipmentPresets?.[presetId];
+    if (!existing) {
+      handleSavePreset(presetId, presetNameInput);
+    } else {
+      const updatedPreset: EquipmentPreset = {
+        ...existing,
+        name: presetNameInput.trim() || (presetId === 'setA' ? 'セットA' : 'セットB'),
+      };
+      const updatedChar: CharacterState = {
+        ...character,
+        equipmentPresets: {
+          ...character.equipmentPresets,
+          [presetId]: updatedPreset,
+        },
+      };
+      onEquipItem(updatedChar);
+    }
+    setEditingPresetId(null);
+  };
+
+  const handleClearPreset = (presetId: 'setA' | 'setB') => {
+    const presetName = character.equipmentPresets?.[presetId]?.name || (presetId === 'setA' ? 'セットA' : 'セットB');
+    const updatedChar: CharacterState = {
+      ...character,
+      equipmentPresets: {
+        ...character.equipmentPresets,
+        [presetId]: null,
+      },
+    };
+    onEquipItem(updatedChar);
+    setSkillFeedback({
+      text: `🗑️ プリセット【${presetName}】の登録内容を削除しました。`,
+      isError: false,
+    });
+    setTimeout(() => setSkillFeedback(null), 2500);
+  };
+
+  const isPresetActive = (presetId: 'setA' | 'setB') => {
+    const preset = character.equipmentPresets?.[presetId];
+    if (!preset) return false;
+    if (!preset.equipment.weapon && !preset.equipment.armor && !preset.equipment.accessory) return false;
+
+    const wMatch = (character.equipment.weapon?.name || null) === (preset.equipment.weapon?.name || null);
+    const aMatch = (character.equipment.armor?.name || null) === (preset.equipment.armor?.name || null);
+    const accMatch = (character.equipment.accessory?.name || null) === (preset.equipment.accessory?.name || null);
+
+    return wMatch && aMatch && accMatch;
+  };
+
+  const handleUnequipAll = () => {
+    const { weapon, armor, accessory } = character.equipment;
+    if (!weapon && !armor && !accessory) {
+      setSkillFeedback({
+        text: '⚠️ 現在装着されている装備品はありません。',
+        isError: true,
+      });
+      setTimeout(() => setSkillFeedback(null), 2500);
+      return;
+    }
+
+    const itemsToReturn: Item[] = [];
+    if (weapon) itemsToReturn.push(weapon);
+    if (armor) itemsToReturn.push(armor);
+    if (accessory) itemsToReturn.push(accessory);
+
+    const updatedChar: CharacterState = {
+      ...character,
+      equipment: {
+        weapon: null,
+        armor: null,
+        accessory: null,
+      },
+      inventory: [...character.inventory, ...itemsToReturn],
+    };
+
+    onEquipItem(updatedChar);
+    setSkillFeedback({
+      text: '🛡️ 全ての装備（武器・防具・アクセサリー）を一度に解除しました！',
+      isError: false,
+    });
+    setTimeout(() => setSkillFeedback(null), 3000);
+  };
+
   const handleLearnSkill = (skillId: string) => {
     const { updatedChar, success, message } = unlockSkillNode(character, skillId);
     setSkillFeedback({ text: message, isError: !success });
@@ -346,8 +557,8 @@ https://ai.studio/build
   const classSkills = ALL_SKILLS.filter(s => s.type === 'class' && s.branchId === character.classInfo.id);
 
   return (
-    <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="bg-[#0b0b0e] border border-[#2d2d30] w-full max-w-2xl rounded-3xl p-6 shadow-2xl text-slate-100 max-h-[92vh] overflow-y-auto relative">
+    <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-backdropFadeIn">
+      <div className="bg-[#0b0b0e] border border-[#2d2d30] w-full max-w-2xl rounded-3xl p-6 shadow-2xl text-slate-100 max-h-[92vh] overflow-y-auto relative animate-modalExpand">
         
         {/* Share Copy Notification Alert toast */}
         {copied && (
@@ -545,9 +756,255 @@ https://ai.studio/build
               </div>
             </div>
 
+            {/* Equipment Presets Section (セットA / セットB) */}
+            <div className="bg-[#121215] border border-[#2d2d30] rounded-2xl p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                <div>
+                  <h3 className="text-xs font-bold text-[#c4a661] uppercase tracking-wider flex items-center gap-1.5">
+                    <Bookmark className="w-4 h-4 text-amber-400" />
+                    <span>装備プリセット (セットA / セットB 役割一括換装)</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    物理・魔法・耐性などの装備構成を保存し、1タップで瞬時に全換装します。
+                  </p>
+                </div>
+
+                <button
+                  onClick={handleUnequipAll}
+                  disabled={!character.equipment.weapon && !character.equipment.armor && !character.equipment.accessory}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold border transition flex items-center gap-1.5 shrink-0 ${
+                    character.equipment.weapon || character.equipment.armor || character.equipment.accessory
+                      ? 'bg-rose-950/80 hover:bg-rose-900/90 text-rose-300 border-rose-700/60 shadow-sm cursor-pointer'
+                      : 'bg-[#14141a] text-slate-600 border-slate-800 cursor-not-allowed'
+                  }`}
+                  title="装着中の全装備（武器・防具・アクセサリー）を一度に解除してインベントリに戻します"
+                >
+                  <ShieldOff className="w-3.5 h-3.5 text-rose-400" />
+                  <span>全装備解除</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {(['setA', 'setB'] as const).map((presetId) => {
+                  const preset = character.equipmentPresets?.[presetId];
+                  const isSetA = presetId === 'setA';
+                  const defaultTitle = isSetA ? 'セットA (役割1)' : 'セットB (役割2)';
+                  const presetName = preset?.name || defaultTitle;
+                  const isActive = isPresetActive(presetId);
+                  const isEditing = editingPresetId === presetId;
+
+                  const pWeapon = preset?.equipment.weapon;
+                  const pArmor = preset?.equipment.armor;
+                  const pAcc = preset?.equipment.accessory;
+
+                  const pAtk = (pWeapon?.stats?.atk || 0) + (pArmor?.stats?.atk || 0) + (pAcc?.stats?.atk || 0);
+                  const pDef = (pWeapon?.stats?.def || 0) + (pArmor?.stats?.def || 0) + (pAcc?.stats?.def || 0);
+
+                  return (
+                    <div
+                      key={presetId}
+                      className={`p-3.5 rounded-xl border transition-all relative flex flex-col justify-between ${
+                        isActive
+                          ? 'bg-gradient-to-b from-[#1c1a14] to-[#121215] border-amber-500/60 shadow-[0_0_15px_rgba(245,158,11,0.15)]'
+                          : preset
+                          ? 'bg-[#16161b] border-[#2d2d38] hover:border-slate-600'
+                          : 'bg-[#101014] border-[#22222b] opacity-80'
+                      }`}
+                    >
+                      <div>
+                        {/* Preset Header Bar */}
+                        <div className="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-[#242430]">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border shrink-0 ${
+                              isSetA ? 'bg-amber-950/80 text-amber-300 border-amber-600/50' : 'bg-purple-950/80 text-purple-300 border-purple-600/50'
+                            }`}>
+                              {isSetA ? 'SET A' : 'SET B'}
+                            </span>
+
+                            {isEditing ? (
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="text"
+                                  value={presetNameInput}
+                                  onChange={(e) => setPresetNameInput(e.target.value)}
+                                  placeholder={defaultTitle}
+                                  className="bg-[#20202a] border border-amber-500 text-xs px-2 py-0.5 rounded text-white font-bold outline-none w-28"
+                                  autoFocus
+                                />
+                                <button
+                                  onClick={() => handleSaveRenamedPreset(presetId)}
+                                  className="p-1 bg-amber-500 text-slate-950 rounded hover:bg-amber-400 cursor-pointer"
+                                  title="保存"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-xs font-bold text-white truncate flex items-center gap-1">
+                                {presetName}
+                                <button
+                                  onClick={() => {
+                                    setEditingPresetId(presetId);
+                                    setPresetNameInput(presetName);
+                                  }}
+                                  className="text-slate-500 hover:text-amber-400 p-0.5 transition cursor-pointer"
+                                  title="名前変更"
+                                >
+                                  <Edit3 className="w-3 h-3" />
+                                </button>
+                              </span>
+                            )}
+                          </div>
+
+                          {isActive ? (
+                            <span className="text-[10px] font-black text-amber-400 bg-amber-950/80 border border-amber-500/60 px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0 animate-pulse">
+                              <CheckCircle2 className="w-3 h-3 text-amber-400" /> 適用中
+                            </span>
+                          ) : preset ? (
+                            <span className="text-[10px] text-slate-500 font-mono shrink-0">
+                              {preset.savedAt ? `保存: ${preset.savedAt}` : '保存済'}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-slate-600 font-mono shrink-0">未登録</span>
+                          )}
+                        </div>
+
+                        {/* Item Breakdown */}
+                        <div className="space-y-1.5 text-xs font-mono mb-3">
+                          <div className="flex items-center justify-between text-slate-300">
+                            <span className="text-[10px] text-slate-500 flex items-center gap-1">
+                              <Sword className="w-3 h-3 text-red-400 shrink-0" /> 武器:
+                            </span>
+                            <span className={`truncate max-w-[140px] text-right ${pWeapon ? 'text-slate-200 font-semibold' : 'text-slate-600'}`}>
+                              {pWeapon ? pWeapon.name : '（未装着）'}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between text-slate-300">
+                            <span className="text-[10px] text-slate-500 flex items-center gap-1">
+                              <Shield className="w-3 h-3 text-blue-400 shrink-0" /> 防具:
+                            </span>
+                            <span className={`truncate max-w-[140px] text-right ${pArmor ? 'text-slate-200 font-semibold' : 'text-slate-600'}`}>
+                              {pArmor ? pArmor.name : '（未装着）'}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between text-slate-300">
+                            <span className="text-[10px] text-slate-500 flex items-center gap-1">
+                              <Sparkles className="w-3 h-3 text-purple-400 shrink-0" /> アクセ:
+                            </span>
+                            <span className={`truncate max-w-[140px] text-right ${pAcc ? 'text-slate-200 font-semibold' : 'text-slate-600'}`}>
+                              {pAcc ? pAcc.name : '（未装着）'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Stats summary badge */}
+                        {preset && (pAtk > 0 || pDef > 0) && (
+                          <div className="mb-3 px-2 py-1 bg-[#101014] rounded border border-[#22222b] text-[10px] font-mono flex items-center justify-around text-slate-400">
+                            <span>付加ATK: <strong className="text-rose-400">+{pAtk}</strong></span>
+                            <span>付加DEF: <strong className="text-blue-400">+{pDef}</strong></span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex items-center gap-1.5 pt-2 border-t border-[#20202b] flex-wrap">
+                        <button
+                          onClick={() => handleSavePreset(presetId)}
+                          className="flex-1 py-1.5 px-2 bg-[#202028] hover:bg-[#2a2a35] border border-[#383848] text-amber-300 hover:text-amber-200 text-[11px] font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-1 shrink-0"
+                          title="現在の装備構成をこのプリセットに上書き保存します"
+                        >
+                          <Save className="w-3.5 h-3.5 text-amber-400" />
+                          <span>現装備を保存</span>
+                        </button>
+
+                        <button
+                          onClick={() => handleEquipPreset(presetId)}
+                          disabled={!preset || isActive}
+                          className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-black transition cursor-pointer flex items-center justify-center gap-1 shrink-0 ${
+                            isActive
+                              ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
+                              : preset
+                              ? 'bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-slate-950 shadow border border-amber-400/50'
+                              : 'bg-slate-900 text-slate-600 border border-slate-800 cursor-not-allowed'
+                          }`}
+                          title={isActive ? '既にこのセットが装着されています' : 'このプリセットに全換装します'}
+                        >
+                          <ArrowUpDown className="w-3.5 h-3.5" />
+                          <span>{isActive ? '装着中' : 'このセットに切替'}</span>
+                        </button>
+
+                        {preset && (
+                          <button
+                            onClick={() => handleClearPreset(presetId)}
+                            className="p-1.5 bg-[#181212] hover:bg-[#281515] border border-[#3e2020] text-red-400 rounded-lg transition cursor-pointer"
+                            title="プリセット削除"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Equipment Slots */}
             <div>
-              <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">装備中の武具 (クリックで詳細表示)</h3>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  装備中の武具 (クリックで詳細表示)
+                </h3>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] text-slate-500 font-mono font-bold">1タップ切替:</span>
+                  <button
+                    onClick={() => handleEquipPreset('setA')}
+                    disabled={!character.equipmentPresets?.setA || isPresetActive('setA')}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold border transition flex items-center gap-1 cursor-pointer ${
+                      isPresetActive('setA')
+                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/60 shadow-sm'
+                        : character.equipmentPresets?.setA
+                        ? 'bg-[#181820] hover:bg-[#22222e] text-slate-300 border-[#3a3a4a]'
+                        : 'bg-[#101014] text-slate-600 border-slate-800 cursor-not-allowed'
+                    }`}
+                  >
+                    <Bookmark className="w-3 h-3 text-amber-400" />
+                    <span>{character.equipmentPresets?.setA?.name || 'セットA'}</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleEquipPreset('setB')}
+                    disabled={!character.equipmentPresets?.setB || isPresetActive('setB')}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold border transition flex items-center gap-1 cursor-pointer ${
+                      isPresetActive('setB')
+                        ? 'bg-purple-500/20 text-purple-300 border-purple-500/60 shadow-sm'
+                        : character.equipmentPresets?.setB
+                        ? 'bg-[#181820] hover:bg-[#22222e] text-slate-300 border-[#3a3a4a]'
+                        : 'bg-[#101014] text-slate-600 border-slate-800 cursor-not-allowed'
+                    }`}
+                  >
+                    <Bookmark className="w-3 h-3 text-purple-400" />
+                    <span>{character.equipmentPresets?.setB?.name || 'セットB'}</span>
+                  </button>
+
+                  <button
+                    onClick={handleUnequipAll}
+                    disabled={!character.equipment.weapon && !character.equipment.armor && !character.equipment.accessory}
+                    className={`px-2 py-1 rounded-lg text-[10px] font-mono font-bold border transition flex items-center gap-1 cursor-pointer ${
+                      character.equipment.weapon || character.equipment.armor || character.equipment.accessory
+                        ? 'bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border-rose-800/50'
+                        : 'bg-[#101014] text-slate-600 border-slate-800 cursor-not-allowed'
+                    }`}
+                    title="全ての装備品を一度に解除"
+                  >
+                    <ShieldOff className="w-3 h-3 text-rose-400" />
+                    <span>全解除</span>
+                  </button>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div 
                   onClick={() => character.equipment.weapon && setSelectedItemDetail({ item: character.equipment.weapon, isEquipped: true, equipType: 'weapon' })}
@@ -966,8 +1423,8 @@ https://ai.studio/build
 
       {/* Reincarnation Confirmation Modal */}
       {showReincarnateConfirm && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-lg z-50 flex items-center justify-center p-4">
-          <div className="bg-[#0f0f14] border-2 border-amber-400 max-w-lg w-full rounded-3xl p-6 shadow-[0_0_50px_rgba(245,158,11,0.3)] text-slate-100 relative animate-fadeIn">
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-lg z-50 flex items-center justify-center p-4 animate-backdropFadeIn">
+          <div className="bg-[#0f0f14] border-2 border-amber-400 max-w-lg w-full rounded-3xl p-6 shadow-[0_0_50px_rgba(245,158,11,0.3)] text-slate-100 relative animate-modalExpand">
             <div className="flex items-center gap-3 text-amber-400 mb-3">
               <div className="w-10 h-10 rounded-2xl bg-amber-950/80 border border-amber-500/60 flex items-center justify-center">
                 <Crown className="w-6 h-6 text-amber-400" />
@@ -1038,8 +1495,8 @@ https://ai.studio/build
 
       {/* Hard Reset Confirmation Modal */}
       {showResetConfirm && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-[#120808] border-2 border-red-600 max-w-md w-full rounded-3xl p-6 shadow-[0_0_50px_rgba(220,38,38,0.3)] text-slate-100 relative animate-fadeIn">
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-backdropFadeIn">
+          <div className="bg-[#120808] border-2 border-red-600 max-w-md w-full rounded-3xl p-6 shadow-[0_0_50px_rgba(220,38,38,0.3)] text-slate-100 relative animate-modalExpand">
             <div className="flex items-center gap-3 text-red-500 mb-3">
               <div className="w-10 h-10 rounded-2xl bg-red-950/80 border border-red-500/60 flex items-center justify-center shrink-0">
                 <AlertTriangle className="w-6 h-6 text-red-500" />
@@ -1079,8 +1536,8 @@ https://ai.studio/build
 
       {/* Item Detail Modal Overlay */}
       {selectedItemDetail && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fadeIn">
-          <div className={`bg-[#0c0d12] border-2 max-w-md w-full rounded-3xl p-6 shadow-2xl relative text-slate-100 ${getRarityBadgeStyle(selectedItemDetail.item.rarity)}`}>
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-backdropFadeIn">
+          <div className={`bg-[#0c0d12] border-2 max-w-md w-full rounded-3xl p-6 shadow-2xl relative text-slate-100 animate-modalExpand ${getRarityBadgeStyle(selectedItemDetail.item.rarity)}`}>
             
             {/* Modal Header */}
             <div className="flex justify-between items-start mb-4 pb-3 border-b border-white/10">
@@ -1126,105 +1583,169 @@ https://ai.studio/build
               </div>
             </div>
 
-            {/* Stats Breakdown */}
-            <div className="bg-[#12131a] p-4 rounded-2xl border border-[#2d2d30] mb-4 space-y-2 text-xs">
-              <span className="text-[10px] font-bold text-slate-400 uppercase font-mono block mb-1">性能・ステータス補正:</span>
-              
-              {selectedItemDetail.item.stats && (
-                <div className="grid grid-cols-2 gap-2">
-                  {selectedItemDetail.item.stats.atk !== undefined && (
-                    <div className="p-2 bg-rose-950/30 rounded-xl border border-rose-900/40 flex justify-between items-center">
-                      <span className="text-rose-300 font-bold">⚔️ 攻撃力:</span>
-                      <strong className="text-rose-400 font-mono text-sm">+{selectedItemDetail.item.stats.atk}</strong>
-                    </div>
-                  )}
-                  {selectedItemDetail.item.stats.def !== undefined && (
-                    <div className="p-2 bg-blue-950/30 rounded-xl border border-blue-900/40 flex justify-between items-center">
-                      <span className="text-blue-300 font-bold">🛡️ 防御力:</span>
-                      <strong className="text-blue-400 font-mono text-sm">+{selectedItemDetail.item.stats.def}</strong>
-                    </div>
-                  )}
-                  {selectedItemDetail.item.stats.hp !== undefined && (
-                    <div className="p-2 bg-emerald-950/30 rounded-xl border border-emerald-900/40 flex justify-between items-center">
-                      <span className="text-emerald-300 font-bold">❤️ 最大HP:</span>
-                      <strong className="text-emerald-400 font-mono text-sm">+{selectedItemDetail.item.stats.hp}</strong>
-                    </div>
-                  )}
-                  {selectedItemDetail.item.stats.mp !== undefined && (
-                    <div className="p-2 bg-purple-950/30 rounded-xl border border-purple-900/40 flex justify-between items-center">
-                      <span className="text-purple-300 font-bold">✨ 最大MP:</span>
-                      <strong className="text-purple-400 font-mono text-sm">+{selectedItemDetail.item.stats.mp}</strong>
-                    </div>
-                  )}
-                  {selectedItemDetail.item.stats.spd !== undefined && (
-                    <div className="p-2 bg-amber-950/30 rounded-xl border border-amber-900/40 flex justify-between items-center">
-                      <span className="text-amber-300 font-bold">⚡ 素早さ:</span>
-                      <strong className="text-amber-400 font-mono text-sm">+{selectedItemDetail.item.stats.spd}</strong>
-                    </div>
-                  )}
-                  {selectedItemDetail.item.stats.crit !== undefined && (
-                    <div className="p-2 bg-yellow-950/30 rounded-xl border border-yellow-900/40 flex justify-between items-center">
-                      <span className="text-yellow-300 font-bold">🎯 会心率:</span>
-                      <strong className="text-yellow-400 font-mono text-sm">+{selectedItemDetail.item.stats.crit}%</strong>
-                    </div>
-                  )}
-                </div>
-              )}
+            {/* Comparison or Specs Breakdown */}
+            {!selectedItemDetail.isEquipped && (selectedItemDetail.item.type === 'weapon' || selectedItemDetail.item.type === 'armor' || selectedItemDetail.item.type === 'accessory') ? (() => {
+              const comp = getEquipmentComparison(selectedItemDetail.item);
+              if (!comp) return null;
 
-              {selectedItemDetail.item.effect && (
-                <div className="p-2.5 bg-emerald-950/30 rounded-xl border border-emerald-800/50 text-emerald-300 font-bold flex items-center justify-between">
-                  <span>🧪 使用効果:</span>
-                  <span className="font-mono text-sm">
-                    {selectedItemDetail.item.effect.type === 'healHp' ? `HP ${selectedItemDetail.item.effect.value} 回復` :
-                     selectedItemDetail.item.effect.type === 'healMp' ? `MP ${selectedItemDetail.item.effect.value} 回復` :
-                     `ステータス +${selectedItemDetail.item.effect.value} 恒久強化`}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Comparison with Equipped Item */}
-            {!selectedItemDetail.isEquipped && (selectedItemDetail.item.type === 'weapon' || selectedItemDetail.item.type === 'armor' || selectedItemDetail.item.type === 'accessory') && (() => {
-              const diff = getItemStatDiff(selectedItemDetail.item);
-              if (!diff) return null;
               return (
-                <div className="bg-[#1a1c24] p-3.5 rounded-2xl border border-[#3a3a48] mb-4 text-xs space-y-1.5">
-                  <span className="text-[10px] font-bold text-amber-400 uppercase font-mono block">
-                    📊 現在の装備品との比較 (装備中: {diff.equippedName}):
-                  </span>
-                  <div className="flex flex-wrap gap-3 text-slate-200 font-mono font-bold">
-                    {diff.diffAtk !== 0 && (
-                      <span className={diff.diffAtk > 0 ? 'text-emerald-400' : 'text-red-400'}>
-                        攻撃力: {diff.diffAtk > 0 ? `+${diff.diffAtk}` : diff.diffAtk}
-                      </span>
-                    )}
-                    {diff.diffDef !== 0 && (
-                      <span className={diff.diffDef > 0 ? 'text-emerald-400' : 'text-red-400'}>
-                        防御力: {diff.diffDef > 0 ? `+${diff.diffDef}` : diff.diffDef}
-                      </span>
-                    )}
-                    {diff.diffHp !== 0 && (
-                      <span className={diff.diffHp > 0 ? 'text-emerald-400' : 'text-red-400'}>
-                        HP: {diff.diffHp > 0 ? `+${diff.diffHp}` : diff.diffHp}
-                      </span>
-                    )}
-                    {diff.diffMp !== 0 && (
-                      <span className={diff.diffMp > 0 ? 'text-emerald-400' : 'text-red-400'}>
-                        MP: {diff.diffMp > 0 ? `+${diff.diffMp}` : diff.diffMp}
-                      </span>
-                    )}
-                    {diff.diffCrit !== 0 && (
-                      <span className={diff.diffCrit > 0 ? 'text-emerald-400' : 'text-red-400'}>
-                        会心率: {diff.diffCrit > 0 ? `+${diff.diffCrit}%` : `${diff.diffCrit}%`}
-                      </span>
-                    )}
-                    {diff.diffAtk === 0 && diff.diffDef === 0 && diff.diffHp === 0 && diff.diffMp === 0 && diff.diffCrit === 0 && (
-                      <span className="text-slate-400">同等のステータス性能</span>
+                <div className="bg-[#12131a] p-4 rounded-2xl border border-[#2d2d38] mb-4 space-y-3">
+                  {/* Header */}
+                  <div className="flex items-center justify-between text-xs font-mono pb-2 border-b border-white/10">
+                    <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                      📊 装備ステータス比較 (EQUIPMENT COMPARISON)
+                    </span>
+                  </div>
+
+                  {/* Item Names Side-by-Side */}
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    {/* Currently Equipped */}
+                    <div className="p-2.5 bg-slate-900/90 rounded-xl border border-slate-700/60">
+                      <span className="text-[10px] font-bold text-slate-400 block mb-0.5">現在装備中:</span>
+                      <div className="font-bold text-slate-200 truncate flex items-center gap-1.5">
+                        {comp.equippedItem ? (
+                          <>
+                            <span className="text-xs">{comp.equippedItem.type === 'weapon' ? '⚔️' : comp.equippedItem.type === 'armor' ? '🛡️' : '💍'}</span>
+                            <span className="truncate">{comp.equippedItem.name}</span>
+                          </>
+                        ) : (
+                          <span className="text-slate-500 italic">（なし）</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Candidate Item */}
+                    <div className="p-2.5 bg-amber-950/40 rounded-xl border border-amber-500/50">
+                      <span className="text-[10px] font-bold text-amber-400 block mb-0.5">装備候補:</span>
+                      <div className="font-bold text-amber-200 truncate flex items-center gap-1.5">
+                        <span className="text-xs">{selectedItemDetail.item.type === 'weapon' ? '⚔️' : selectedItemDetail.item.type === 'armor' ? '🛡️' : '💍'}</span>
+                        <span className="truncate">{selectedItemDetail.item.name}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Stat Rows Comparison */}
+                  <div className="space-y-1.5">
+                    {comp.stats.length > 0 ? (
+                      comp.stats.map(s => (
+                        <div 
+                          key={s.key}
+                          className={`p-2.5 rounded-xl border flex items-center justify-between text-xs transition-all ${
+                            s.diff > 0 
+                              ? 'bg-emerald-950/40 border-emerald-500/60 text-emerald-200 shadow-[0_2px_10px_rgba(16,185,129,0.15)]' 
+                              : s.diff < 0 
+                                ? 'bg-rose-950/40 border-rose-500/60 text-rose-200 shadow-[0_2px_10px_rgba(244,63,94,0.15)]' 
+                                : 'bg-slate-900/60 border-slate-800 text-slate-300'
+                          }`}
+                        >
+                          {/* Stat label */}
+                          <span className="font-bold shrink-0 text-slate-300 min-w-[70px]">{s.label}</span>
+
+                          {/* Current -> Candidate flow */}
+                          <div className="flex items-center gap-2 font-mono">
+                            <span className="text-slate-400 text-xs">
+                              {s.cur !== 0 ? `+${s.cur}${s.unit}` : '0'}
+                            </span>
+                            <span className="text-slate-500 text-[10px]">➔</span>
+                            <span className={`font-black text-sm ${
+                              s.diff > 0 ? 'text-emerald-400 font-extrabold' :
+                              s.diff < 0 ? 'text-rose-400 font-extrabold' :
+                              'text-slate-200'
+                            }`}>
+                              {s.candidate !== 0 ? `+${s.candidate}${s.unit}` : '0'}
+                            </span>
+                          </div>
+
+                          {/* Difference Badge: Green for higher candidate, Red for lower candidate */}
+                          <span className={`px-2.5 py-1 rounded-lg font-mono font-black text-xs shrink-0 border flex items-center gap-1 shadow-sm ${
+                            s.diff > 0 
+                              ? 'bg-emerald-900/90 border-emerald-400 text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.4)]' 
+                              : s.diff < 0 
+                                ? 'bg-rose-900/90 border-rose-400 text-rose-300 shadow-[0_0_10px_rgba(244,63,94,0.4)]' 
+                                : 'bg-slate-800 border-slate-700 text-slate-400'
+                          }`}>
+                            {s.diff > 0 ? (
+                              <>
+                                <span>+{s.diff}{s.unit}</span>
+                                <span className="text-[10px]">▲</span>
+                              </>
+                            ) : s.diff < 0 ? (
+                              <>
+                                <span>{s.diff}{s.unit}</span>
+                                <span className="text-[10px]">▼</span>
+                              </>
+                            ) : (
+                              <span>±0</span>
+                            )}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-3 bg-slate-900/50 rounded-xl border border-slate-800 text-center text-slate-400 text-xs">
+                        ステータス変化なし
+                      </div>
                     )}
                   </div>
                 </div>
               );
-            })()}
+            })() : (
+              /* Single Specs Breakdown for Equipped items / Consumables */
+              <div className="bg-[#12131a] p-4 rounded-2xl border border-[#2d2d30] mb-4 space-y-2 text-xs">
+                <span className="text-[10px] font-bold text-slate-400 uppercase font-mono block mb-1">性能・ステータス補正:</span>
+                
+                {selectedItemDetail.item.stats && (
+                  <div className="grid grid-cols-2 gap-2">
+                    {selectedItemDetail.item.stats.atk !== undefined && (
+                      <div className="p-2 bg-rose-950/30 rounded-xl border border-rose-900/40 flex justify-between items-center">
+                        <span className="text-rose-300 font-bold">⚔️ 攻撃力:</span>
+                        <strong className="text-rose-400 font-mono text-sm">+{selectedItemDetail.item.stats.atk}</strong>
+                      </div>
+                    )}
+                    {selectedItemDetail.item.stats.def !== undefined && (
+                      <div className="p-2 bg-blue-950/30 rounded-xl border border-blue-900/40 flex justify-between items-center">
+                        <span className="text-blue-300 font-bold">🛡️ 防御力:</span>
+                        <strong className="text-blue-400 font-mono text-sm">+{selectedItemDetail.item.stats.def}</strong>
+                      </div>
+                    )}
+                    {selectedItemDetail.item.stats.hp !== undefined && (
+                      <div className="p-2 bg-emerald-950/30 rounded-xl border border-emerald-900/40 flex justify-between items-center">
+                        <span className="text-emerald-300 font-bold">❤️ 最大HP:</span>
+                        <strong className="text-emerald-400 font-mono text-sm">+{selectedItemDetail.item.stats.hp}</strong>
+                      </div>
+                    )}
+                    {selectedItemDetail.item.stats.mp !== undefined && (
+                      <div className="p-2 bg-purple-950/30 rounded-xl border border-purple-900/40 flex justify-between items-center">
+                        <span className="text-purple-300 font-bold">✨ 最大MP:</span>
+                        <strong className="text-purple-400 font-mono text-sm">+{selectedItemDetail.item.stats.mp}</strong>
+                      </div>
+                    )}
+                    {selectedItemDetail.item.stats.spd !== undefined && (
+                      <div className="p-2 bg-amber-950/30 rounded-xl border border-amber-900/40 flex justify-between items-center">
+                        <span className="text-amber-300 font-bold">⚡ 素早さ:</span>
+                        <strong className="text-amber-400 font-mono text-sm">+{selectedItemDetail.item.stats.spd}</strong>
+                      </div>
+                    )}
+                    {selectedItemDetail.item.stats.crit !== undefined && (
+                      <div className="p-2 bg-yellow-950/30 rounded-xl border border-yellow-900/40 flex justify-between items-center">
+                        <span className="text-yellow-300 font-bold">🎯 会心率:</span>
+                        <strong className="text-yellow-400 font-mono text-sm">+{selectedItemDetail.item.stats.crit}%</strong>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {selectedItemDetail.item.effect && (
+                  <div className="p-2.5 bg-emerald-950/30 rounded-xl border border-emerald-800/50 text-emerald-300 font-bold flex items-center justify-between">
+                    <span>🧪 使用効果:</span>
+                    <span className="font-mono text-sm">
+                      {selectedItemDetail.item.effect.type === 'healHp' ? `HP ${selectedItemDetail.item.effect.value} 回復` :
+                       selectedItemDetail.item.effect.type === 'healMp' ? `MP ${selectedItemDetail.item.effect.value} 回復` :
+                       `ステータス +${selectedItemDetail.item.effect.value} 恒久強化`}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Description */}
             <div className="bg-black/40 p-3.5 rounded-xl border border-white/5 text-xs text-slate-300 leading-relaxed mb-6">

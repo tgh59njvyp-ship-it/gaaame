@@ -1,10 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { CharacterState, Enemy, Spell, Item } from '../types';
-import { Swords, Wand2, Shield, Backpack, Zap, Flame, Snowflake, Skull, Sparkles, Trophy, Coins, Hourglass, ChevronRight, User, ShieldAlert, FlameKindling, Waves } from 'lucide-react';
+import { Swords, Wand2, Shield, Backpack, Zap, Flame, Snowflake, Skull, Sparkles, Trophy, Coins, Hourglass, ChevronRight, User, ShieldAlert, FlameKindling, Waves, ArrowDown, Maximize2, Minimize2, Terminal, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { getTitleBonuses, TITLES } from '../utils/titleUtils';
 import { checkAndUnlockLevelUpSpells, getSpellElementInfo, getComboMultiplier, ElementInfo } from '../utils/spellUtils';
 import { getSkillStatsBonus } from '../utils/skillUtils';
+
+export interface BattleLogEntry {
+  id: string;
+  turn: number;
+  time: string;
+  category: 'attack' | 'magic' | 'dodge' | 'item' | 'defend' | 'status' | 'system';
+  title: string;
+  detail?: string;
+  isCrit?: boolean;
+  isDodge?: boolean;
+  isPlayerAction?: boolean;
+}
 
 interface BattleScreenProps {
   character: CharacterState;
@@ -26,9 +38,6 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const [enemyHp, setEnemyHp] = useState(enemy.hp);
   const [enemyMaxHp] = useState(enemy.maxHp);
   const [isDefending, setIsDefending] = useState(false);
-  const [battleLogs, setBattleLogs] = useState<string[]>([
-    `${enemy.name}（Lv.${enemy.level}）が現れた！戦闘開始！`,
-  ]);
   const [turnCount, setTurnCount] = useState(1);
   const [isPlayerTurn, setIsPlayerTurn] = useState(character.spd >= enemy.spd);
   const [enemyStatus, setEnemyStatus] = useState<{ type: string; duration: number } | null>(
@@ -38,6 +47,59 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const [victoryRewards, setVictoryRewards] = useState<{ gold: number; exp: number } | null>(null);
   const [showSpellMenu, setShowSpellMenu] = useState(false);
   const [showItemMenu, setShowItemMenu] = useState(false);
+
+  // --- LOG CONSOLE STATES ---
+  const logContainerRef = useRef<HTMLDivElement>(null);
+  const [autoScroll, setAutoScroll] = useState<boolean>(true);
+  const [logCategoryFilter, setLogCategoryFilter] = useState<'all' | 'attack' | 'magic' | 'dodge' | 'item' | 'status'>('all');
+  const [isLogExpanded, setIsLogExpanded] = useState<boolean>(false);
+
+  const [battleLogs, setBattleLogs] = useState<BattleLogEntry[]>(() => [
+    {
+      id: `init-${Date.now()}`,
+      turn: 1,
+      time: new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      category: 'system',
+      title: `⚔️ 【ダンジョン遭遇】 ${enemy.name}（Lv.${enemy.level}）が現れた！ 戦闘開始！`,
+      detail: `敵情報 ➔ 初期HP: ${enemy.hp} | 攻撃力: ${enemy.atk} | 防御力: ${enemy.def} | 素早さ: ${enemy.spd}`,
+    },
+  ]);
+
+  const addLogEntry = (
+    title: string,
+    category: BattleLogEntry['category'] = 'system',
+    detail?: string,
+    isCrit?: boolean,
+    isDodge?: boolean,
+    isPlayerAction?: boolean
+  ) => {
+    const time = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const entry: BattleLogEntry = {
+      id: `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      turn: turnCount,
+      time,
+      category,
+      title,
+      detail,
+      isCrit,
+      isDodge,
+      isPlayerAction,
+    };
+    setBattleLogs((prev) => [...prev, entry]);
+  };
+
+  const addLog = (msg: string) => {
+    addLogEntry(msg, 'system');
+  };
+
+  useEffect(() => {
+    if (autoScroll && logContainerRef.current) {
+      logContainerRef.current.scrollTo({
+        top: logContainerRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
+    }
+  }, [battleLogs, autoScroll]);
 
   // --- BUZZ & DOPAMINE FEATURES ---
   const [aetherGauge, setAetherGauge] = useState(20); // Starts slightly filled for dynamic pace
@@ -90,10 +152,6 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const currentActiveElementInfo = lastSpellElement 
     ? getSpellElementInfo({ id: '', name: '', mpCost: 0, power: 0, desc: '', effectType: 'damage', element: lastSpellElement as any })
     : null;
-
-  const addLog = (msg: string) => {
-    setBattleLogs((prev) => [msg, ...prev.slice(0, 15)]);
-  };
 
   const triggerScreenShake = () => {
     setScreenShake(true);
@@ -170,13 +228,13 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         powerBonus,
       });
       
-      addLog(`✨ 【魔法覚醒】『${updatedSpellName}』の習熟度が Lv.${nextLvl} に上昇！威力が大幅に上昇しました！ ✨`);
+      addLogEntry(`✨ 【魔法覚醒】『${updatedSpellName}』の習熟度が Lv.${nextLvl} に到達！威力が大幅上昇！`, 'magic', `基本威力 +${powerBonus} (威力25%アップ) | 次レベル目標: ${nextLvl * 3}回`, false, false, true);
       triggerFlash('burst');
       triggerScreenShake();
     } else {
       const targetSpell = updatedSpells.find(s => s.id === spellId);
       if (targetSpell) {
-        addLog(`🔮 『${targetSpell.name}』の魔法習熟度が上昇！ (${targetSpell.masteryExp}/${targetSpell.masteryMaxExp})`);
+        addLogEntry(`🔮 『${targetSpell.name}』の習熟度を獲得 (${targetSpell.masteryExp}/${targetSpell.masteryMaxExp}回)`, 'magic', undefined, false, false, true);
       }
     }
   };
@@ -191,20 +249,65 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       if (enemyStatus.type === 'burn' || enemyStatus.type === 'poison') {
         const dotDamage = Math.floor(enemyMaxHp * 0.08);
         hpAfterStatus = Math.max(0, currentEnemyHp - dotDamage);
-        addLog(`${enemy.name}は${enemyStatus.type === 'burn' ? '火傷' : '毒'}により ${dotDamage} のダメージを受けた！`);
+        addLogEntry(
+          `🔥 【状態異常ダメージ】 ${enemy.name} は${enemyStatus.type === 'burn' ? '火傷' : '毒'}の継続ダメージにより ${dotDamage} HPを失った！`,
+          'status',
+          `残り持続: ${enemyStatus.duration - 1}T | 最大HP比 8% ダメージ`,
+          false,
+          false,
+          false
+        );
         if (hpAfterStatus <= 0) {
           handleVictory(hpAfterStatus, currentHp, currentMp);
           return;
         }
       }
       if (enemyStatus.type === 'freeze' || enemyStatus.type === 'paralyze') {
-        addLog(`${enemy.name}は痺れていて動けない！`);
+        addLogEntry(
+          `❄️ 【行動不能】 ${enemy.name} は${enemyStatus.type === 'freeze' ? '凍結' : '麻痺'}で動けない！ 攻撃ターンを消化！`,
+          'status',
+          `行動不能状態 (残り ${enemyStatus.duration - 1} ターン)`,
+          false,
+          false,
+          false
+        );
         setEnemyStatus((prev) => (prev && prev.duration > 1 ? { ...prev, duration: prev.duration - 1 } : null));
         setIsPlayerTurn(true);
         setEnemyHp(hpAfterStatus);
         setTurnCount(prev => prev + 1);
         return;
       }
+    }
+
+    // Player Dodge Chance Calculation
+    const playerDodgeChance = Math.min(35, Math.max(5, Math.floor((character.spd - enemy.spd) * 0.8 + 10)));
+    const isPlayerDodge = Math.random() * 100 < playerDodgeChance;
+
+    if (isPlayerDodge) {
+      addLogEntry(
+        `💨 【完全回避 / DODGE!】 ${character.name} は敏捷さ(SPD ${character.spd})を生かして ${enemy.name} の攻撃を身軽に回避した！`,
+        'dodge',
+        `回避判定: 成功 (確率 ${playerDodgeChance}% | 自SPD ${character.spd} vs 敵SPD ${enemy.spd}) | 被被害: 0`,
+        false,
+        true,
+        true
+      );
+      triggerFlash('wind');
+      setAetherGauge(prev => Math.min(100, prev + 10));
+      setIsDefending(false);
+      setTurnCount(prev => prev + 1);
+      if (isAetherBurstActive) {
+        if (burstTurnsLeft <= 1) {
+          setIsAetherBurstActive(false);
+          setBurstTurnsLeft(0);
+          addLogEntry('【次元終了】エーテルバーストの効果が切れた。', 'system');
+        } else {
+          setBurstTurnsLeft(prev => prev - 1);
+        }
+      }
+      setIsPlayerTurn(true);
+      setEnemyHp(hpAfterStatus);
+      return;
     }
 
     // Enemy attack calculation
@@ -215,7 +318,15 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     const finalDmg = Math.max(3, rawDmg);
     const newCharHp = Math.max(0, currentHp - finalDmg);
 
-    addLog(`${enemy.name}の攻撃！ ${character.name}に ${finalDmg} のダメージ！${isCrit ? ' 【痛恨の一撃！】' : ''}`);
+    addLogEntry(
+      `💥 ${enemy.name} の攻撃！ ➔ ${character.name} に ${finalDmg} の物理ダメージ！${isCrit ? ' 【痛恨の一撃！】' : ''}`,
+      'attack',
+      `(敵攻撃: ${enemy.atk} - 自防御: ${Math.floor(characterDef * (isDefending ? 1.8 : 0.8))}${isDefending ? ' [防御姿勢 -50%]' : ''}${isCrit ? ' | 会心: 1.5x' : ''})`,
+      isCrit,
+      false,
+      false
+    );
+
     if (isCrit) {
       triggerScreenShake();
       triggerFlash('critical');
@@ -231,7 +342,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
 
     if (newCharHp <= 0) {
       setIsBattleOver(true);
-      addLog(`${character.name}は力尽きてしまった……。`);
+      addLogEntry(`💀 【敗北】 ${character.name} は力尽きて倒れてしまった……。`, 'system');
       setTimeout(() => onDefeat(), 2000);
       return;
     }
@@ -244,7 +355,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       if (burstTurnsLeft <= 1) {
         setIsAetherBurstActive(false);
         setBurstTurnsLeft(0);
-        addLog('【次元終了】エーテルバーストの効果が切れた。');
+        addLogEntry('【次元終了】エーテルバーストの効果が切れた。', 'system');
       } else {
         setBurstTurnsLeft(prev => prev - 1);
       }
@@ -261,6 +372,28 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     // Normal physical attack breaks magic elemental combo
     setLastSpellElement(null);
     setElementComboCount(0);
+
+    // Enemy Dodge check
+    const enemyDodgeChance = isAetherBurstActive ? 0 : Math.min(25, Math.max(3, Math.floor((enemy.spd - character.spd) * 0.6 + 5)));
+    const isEnemyDodge = Math.random() * 100 < enemyDodgeChance;
+
+    if (isEnemyDodge) {
+      addLogEntry(
+        `💨 【回避 / MISS】 ${enemy.name} は敏捷な身のこなしで ${character.name} の攻撃を回避した！`,
+        'dodge',
+        `回避判定: 敵成功 (敵SPD ${enemy.spd} vs 自SPD ${character.spd}) | 与被害: 0`,
+        false,
+        true,
+        false
+      );
+      showDamageIndicator(0, false, false);
+      setIsPlayerTurn(false);
+      if (!isAetherBurstActive) {
+        setAetherGauge(prev => Math.min(100, prev + 5));
+      }
+      setTimeout(() => executeEnemyTurn(charHp, charMp, enemyHp), 600);
+      return;
+    }
 
     // Aether Burst active multipliers
     const dmgMultiplier = isAetherBurstActive ? 3.5 : 1.0;
@@ -280,11 +413,25 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     const newEnemyHp = Math.max(0, enemyHp - finalDmg);
     
     if (isAetherBurstActive) {
-      addLog(`💥 【神撃エーテルノヴァ】 覚醒の一撃が炸裂！ ${enemy.name}に ${finalDmg} の崩壊ダメージ！！！`);
+      addLogEntry(
+        `💥 【神撃エーテルノヴァ】 覚醒の一撃が炸裂！ ➔ ${enemy.name} に ${finalDmg} の次元崩壊ダメージ！！！`,
+        'attack',
+        `(基本攻撃 ${characterAtk} - 敵Def ${Math.floor(enemy.def / 2)} | 覚醒倍率: 3.5x${isCrit ? ' | 会心: ' + mult + 'x' : ''})`,
+        isCrit,
+        false,
+        true
+      );
       triggerScreenShake();
       triggerFlash('burst');
     } else {
-      addLog(`${character.name}の攻撃！ ${enemy.name}に ${finalDmg} のダメージ！${isCrit ? ' 【会心の一撃！】' : ''}`);
+      addLogEntry(
+        `⚔️ ${character.name} の通常攻撃！ ➔ ${enemy.name} に ${finalDmg} の物理ダメージ！${isCrit ? ' 【会心の一撃！】' : ''}`,
+        'attack',
+        `(攻撃力 ${characterAtk} - 敵Def ${Math.floor(enemy.def / 2)}${isCrit ? ' | 会心倍率: ' + mult + 'x' : ''})`,
+        isCrit,
+        false,
+        true
+      );
       if (isCrit) {
         triggerScreenShake();
         triggerFlash('critical');
@@ -317,7 +464,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     setIsAetherBurstActive(true);
     setBurstTurnsLeft(3);
     triggerScreenShake();
-    addLog('🔥 【次元覚醒】エーテルバースト発動！限界を突破し、攻撃力が3.5倍＆会心率が+50%！');
+    addLogEntry('🔥 【次元覚醒 / AETHER BURST】 発動！ エーテル共鳴率 100% 突破！', 'system', '全物理・魔法攻撃力 3.5倍 ＆ 会心率 +50% （持続: 3ターン）');
   };
 
   // Player Cast Spell
@@ -329,7 +476,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     const mLevel = spell.masteryLevel ?? 1;
 
     if (charMp < spell.mpCost) {
-      addLog('MPが足りません！');
+      addLogEntry('MPが不足しているため詠唱できません！', 'system');
       return;
     }
 
@@ -370,11 +517,14 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       const newHp = Math.min(totalMaxHp, charHp + healAmount);
       setCharHp(newHp);
       
-      if (newComboCount >= 2) {
-        addLog(`${elemInfo.icon} 【${elemInfo.elementName}コンボ x${newComboCount}】 聖なる魔力が共鳴！ 回復量が ${comboMult.toFixed(2)}倍 に上昇 (${healAmount})！`);
-      } else {
-        addLog(`${character.name}は ${spell.name} を唱えた！ HPが ${healAmount} 回復した。`);
-      }
+      addLogEntry(
+        `💚 ${character.name} は『${spell.name}』を唱えた！ HPが ${healAmount} 回復！${newComboCount >= 2 ? ' 【' + elemInfo.elementName + 'コンボ x' + newComboCount + '】' : ''}`,
+        'magic',
+        `(基本回復: ${spell.power}% | 消費MP: ${spell.mpCost}${newComboCount >= 2 ? ' | コンボ倍率: ' + comboMult.toFixed(2) + 'x' : ''})`,
+        false,
+        false,
+        true
+      );
 
       showDamageIndicator(healAmount, false, false, true, mLevel, comboInfoObj);
       triggerFlash('heal');
@@ -391,11 +541,14 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       setCharHp(newHp);
       setEnemyHp(newEnemyHp);
 
-      if (newComboCount >= 2) {
-        addLog(`${elemInfo.icon} 【${elemInfo.elementName}コンボ x${newComboCount}】 闇の魔力が集約！ ${enemy.name}に ${spellDmg} の超吸収ダメージ（${comboMult.toFixed(2)}倍）！`);
-      } else {
-        addLog(`${character.name}の ${spell.name}！ ${enemy.name}に ${spellDmg} の魔力ダメージを与え、HPを ${healAmount} 吸収！`);
-      }
+      addLogEntry(
+        `🔮 ${character.name} の『${spell.name}』！ ➔ ${enemy.name} に ${spellDmg} の吸血魔力打撃！ HPを ${healAmount} 吸収！`,
+        'magic',
+        `(基本威力: ${spell.power} | 習熟度: Lv.${mLevel} | 吸収率: 50% | 消費MP: ${spell.mpCost}${newComboCount >= 2 ? ' | コンボ: ' + comboMult.toFixed(2) + 'x' : ''})`,
+        false,
+        false,
+        true
+      );
 
       showDamageIndicator(spellDmg, false, isAetherBurstActive, false, mLevel, comboInfoObj);
       triggerScreenShake();
@@ -425,19 +578,27 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
 
     const newEnemyHp = Math.max(0, enemyHp - spellDmg);
     
-    if (newComboCount >= 2) {
-      addLog(`${elemInfo.icon} 【${elemInfo.elementName}コンボ x${newComboCount}】 元素が激しく共鳴！ ${enemy.name}に ${spellDmg} (${comboMult.toFixed(2)}倍) の属性大打撃！`);
-    } else {
-      addLog(`${character.name}の ${spell.name}！ ${enemy.name}に ${spellDmg} の魔法ダメージ！`);
-    }
+    addLogEntry(
+      `🔮 ${character.name} の『${spell.name}』！ ➔ ${enemy.name} に ${spellDmg} の${elemInfo.elementName}属性魔法ダメージ！${newComboCount >= 2 ? ' 【' + elemInfo.elementName + 'コンボ x' + newComboCount + ' (' + comboMult.toFixed(2) + '倍)】' : ''}`,
+      'magic',
+      `(基本威力: ${spell.power} | 習熟度 Lv.${mLevel} | 消費MP: ${spell.mpCost}${newComboCount >= 2 ? ' | コンボ倍率: ' + comboMult.toFixed(2) + 'x' : ''})`,
+      false,
+      false,
+      true
+    );
 
     showDamageIndicator(spellDmg, false, isAetherBurstActive, false, mLevel, comboInfoObj);
     triggerScreenShake();
     triggerFlash(elemInfo.id as any);
 
     if (spell.statusEffect && Math.random() < spell.statusEffect.chance) {
+      const statusLabel = spell.statusEffect.type === 'burn' ? '火傷' : spell.statusEffect.type === 'freeze' ? '凍結' : spell.statusEffect.type === 'paralyze' ? '麻痺' : '毒';
       setEnemyStatus({ type: spell.statusEffect.type, duration: spell.statusEffect.duration });
-      addLog(`${enemy.name}に ${spell.statusEffect.type === 'burn' ? '火傷' : spell.statusEffect.type === 'freeze' ? '凍結' : spell.statusEffect.type === 'paralyze' ? '麻痺' : '毒'} を付与した！`);
+      addLogEntry(
+        `⚡ 状態異常誘発！ ${enemy.name} に【${statusLabel}】を付与した！`,
+        'status',
+        `持続: ${spell.statusEffect.duration}ターン | 付与確率: ${Math.round(spell.statusEffect.chance * 100)}%`
+      );
     }
 
     setEnemyHp(newEnemyHp);
@@ -468,19 +629,17 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     if (item.effect?.type === 'healHp') {
       newHp = Math.min(totalMaxHp, charHp + item.effect.value);
       setCharHp(newHp);
-      addLog(`${item.name}を使用し、HPが ${item.effect.value} 回復した！`);
+      addLogEntry(`🧪 ${item.name} を使用！ HPが ${item.effect.value} 回復！`, 'item', `回復後の状態 ➔ HP: ${newHp}/${totalMaxHp}`, false, false, true);
       showDamageIndicator(item.effect.value, false, false, true);
       triggerFlash('heal');
     } else if (item.effect?.type === 'healMp') {
       newMp = Math.min(totalMaxMp, charMp + item.effect.value);
       setCharMp(newMp);
-      addLog(`${item.name}を使用し、MPが ${item.effect.value} 回復した！`);
-      // Blue magic indicator for MP recovery
+      addLogEntry(`🧪 ${item.name} を使用！ MPが ${item.effect.value} 回復！`, 'item', `回復後の状態 ➔ MP: ${newMp}/${totalMaxMp}`, false, false, true);
       showDamageIndicator(item.effect.value, false, false, true);
       triggerFlash('heal');
     }
 
-    // Accumulate total potion stats
     setPotionsUsedThisBattle(prev => prev + 1);
 
     character.inventory = newInventory;
@@ -495,7 +654,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     setIsDefending(true);
     setLastSpellElement(null);
     setElementComboCount(0);
-    addLog(`${character.name}は身構えて防御力を高めた！`);
+    addLogEntry(`🛡️ ${character.name} は身構えて完全防御体制をとった！`, 'defend', '被ダメージ 50% 軽減 & 防御補正 1.8x 適用（次ターンまで持続）', false, false, true);
     setIsPlayerTurn(false);
     setTimeout(() => executeEnemyTurn(charHp, charMp, enemyHp), 600);
   };
@@ -513,7 +672,11 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     const earnedExp = Math.floor(enemy.expReward * expMultiplier);
 
     setVictoryRewards({ gold: earnedGold, exp: earnedExp });
-    addLog(`見事に ${enemy.name} を討伐した！ 報酬: 金貨 ${earnedGold}G, EXP ${earnedExp}`);
+    addLogEntry(
+      `👑 【討伐完了】 見事に ${enemy.name} を撃破した！ 獲得報酬: 金貨 ${earnedGold}G / EXP ${earnedExp}`,
+      'system',
+      `総与ダメージ: ${enemy.maxHp - finalEnemyHp} | ゴールドボーナス: ${goldMultiplier.toFixed(2)}x`
+    );
 
     let newExp = character.exp + earnedExp;
     let newLevel = character.level;
@@ -533,7 +696,11 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       newAtk += 5;
       newDef += 3;
       newSp += 2;
-      addLog(`【レベルアップ！】 レベルが ${newLevel} に上がった！ ステータス上昇＆スキルポイント+2！`);
+      addLogEntry(
+        `✨ 【レベルアップ！】 レベルが ${newLevel} に到達！ 全能力強化＆スキルポイント+2！`,
+        'system',
+        'ステータス成長 ➔ HP +20 | MP +15 | ATK +5 | DEF +3 | SP +2'
+      );
     }
 
     // Phoenix check (HP is <= 10% on victory)
@@ -569,14 +736,19 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
 
     if (unlockedSpells.length > 0) {
       unlockedSpells.forEach((spell) => {
-        addLog(`✨ 【新呪文修得】レベル ${newLevel} に到達！元素が共鳴し『${spell.name}』が解放されました！`);
+        addLogEntry(`✨ 【新呪文修得】 レベル ${newLevel} 到達！ 元素共鳴により『${spell.name}』が解禁された！`, 'magic');
       });
     }
 
     setTimeout(() => {
       onVictory(updatedChar, earnedGold, earnedExp, isPhoenix);
-    }, 2000);
+    }, 1200);
   };
+
+  const filteredLogs = React.useMemo(() => {
+    if (logCategoryFilter === 'all') return battleLogs;
+    return battleLogs.filter((log) => log.category === logCategoryFilter);
+  }, [battleLogs, logCategoryFilter]);
 
   return (
     <div className={`max-w-3xl mx-auto p-4 md:p-6 text-slate-100 selection:bg-amber-500/30 ${screenShake ? 'animate-shake' : ''}`}>
@@ -1295,10 +1467,10 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
             onClick={() => setMasteryLevelUpEvent(null)}
           >
             <motion.div 
-              initial={{ scale: 0.8, y: 50, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.8, y: -50, opacity: 0 }}
-              transition={{ type: 'spring', damping: 15, stiffness: 120 }}
+              initial={{ scale: 0.88, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.88, opacity: 0 }}
+              transition={{ ease: [0.16, 1, 0.3, 1], duration: 0.28 }}
               className="bg-gradient-to-b from-[#16161f] to-[#0c0c11] border-2 border-amber-400/80 p-8 rounded-3xl max-w-sm w-full text-center relative overflow-hidden shadow-[0_20px_50px_rgba(245,158,11,0.25)]"
               onClick={(e) => e.stopPropagation()}
             >
@@ -1345,49 +1517,177 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Glassy Live Combat Logs Box */}
-      <div className="bg-[#0c0c0e]/90 border border-[#232329] rounded-2xl p-4.5 shadow-2xl relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(0,0,0,0)_0%,rgba(0,0,0,0.4)_100%)]" />
-        <h4 className="text-[10px] font-black tracking-[0.2em] text-slate-500 uppercase mb-3 flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          Live Combat Telemetry / 戦闘ログ
-        </h4>
-        <div className="space-y-2 max-h-40 overflow-y-auto pr-2 text-xs font-mono scrollbar-thin scrollbar-thumb-slate-800">
-          {battleLogs.map((log, i) => {
-            let colorClass = 'text-slate-400';
-            
-            if (log.includes('【新呪文修得】') || log.includes('【次元終了】')) {
-              colorClass = 'text-amber-400 font-bold';
-            } else if (log.includes('次元覚醒') || log.includes('AETHER BURST')) {
-              colorClass = 'text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-500 to-yellow-300 font-extrabold tracking-wide';
-            } else if (log.includes('通常攻撃') || log.includes('攻撃！') || log.includes('痛恨の一撃')) {
-              colorClass = 'text-rose-400';
-            } else if (log.includes('【会心の一撃！】')) {
-              colorClass = 'text-amber-300 font-bold';
-            } else if (log.includes('詠唱') || log.includes('呪文') || log.includes('共鳴し')) {
-              colorClass = 'text-purple-400';
-            } else if (log.includes('回復しました') || log.includes('回復した')) {
-              colorClass = 'text-emerald-400';
-            } else if (log.includes('現れた') || log.includes('戦闘開始')) {
-              colorClass = 'text-white font-bold tracking-wider';
-            } else if (log.includes('力尽きてしまった')) {
-              colorClass = 'text-red-500 font-black';
-            }
+      {/* Interactive Roguelike Combat Log Terminal */}
+      <div className="mt-4 bg-[#09090d] border border-[#23232b] rounded-2xl p-4 shadow-2xl relative overflow-hidden transition-all duration-300">
+        {/* Subtle grid accent glow */}
+        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_top,rgba(245,158,11,0.03)_0%,transparent_70%)]" />
 
-            return (
-              <motion.div 
-                key={i}
-                initial={{ opacity: 0, x: -5 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.25 }}
-                className={`flex items-start gap-1.5 leading-relaxed ${colorClass}`}
-              >
-                <ChevronRight className="w-3.5 h-3.5 shrink-0 mt-0.5 opacity-60" />
-                <span>{log}</span>
-              </motion.div>
-            );
-          })}
+        {/* Terminal Header & Controls */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#1b1b22] mb-3 relative z-10">
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+            </span>
+            <h4 className="text-[11px] font-black tracking-[0.18em] text-slate-300 uppercase flex items-center gap-1.5 font-mono">
+              <Terminal className="w-3.5 h-3.5 text-amber-400" />
+              <span>ROGUELIKE COMBAT LOG</span>
+              <span className="text-[10px] text-slate-500 font-bold font-mono bg-[#14141a] px-2 py-0.5 rounded border border-[#262633]">
+                {filteredLogs.length}件
+              </span>
+            </h4>
+          </div>
+
+          {/* Log Controls & Filters */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <div className="flex items-center bg-[#101016] p-1 rounded-xl border border-[#23232b] text-[10px] font-mono">
+              {(['all', 'attack', 'magic', 'dodge', 'item', 'status'] as const).map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setLogCategoryFilter(cat)}
+                  className={`px-2 py-0.5 rounded-lg font-bold transition cursor-pointer ${
+                    logCategoryFilter === cat
+                      ? 'bg-amber-500 text-slate-950 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {cat === 'all' && 'すべて'}
+                  {cat === 'attack' && '⚔️ 物理'}
+                  {cat === 'magic' && '🔮 魔法'}
+                  {cat === 'dodge' && '💨 回避'}
+                  {cat === 'item' && '🧪 薬'}
+                  {cat === 'status' && '⚡ 状態'}
+                </button>
+              ))}
+            </div>
+
+            {/* Auto-scroll toggle */}
+            <button
+              onClick={() => setAutoScroll(!autoScroll)}
+              title={autoScroll ? "自動追従中" : "手動固定中"}
+              className={`px-2 py-1 rounded-xl border text-[10px] font-mono font-bold flex items-center gap-1 transition cursor-pointer ${
+                autoScroll
+                  ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300'
+                  : 'bg-slate-900 border-slate-700 text-slate-400'
+              }`}
+            >
+              <ArrowDown className={`w-3 h-3 ${autoScroll ? 'animate-bounce text-emerald-400' : ''}`} />
+              <span>{autoScroll ? '追従ON' : '追従OFF'}</span>
+            </button>
+
+            {/* Expand / Minimize Height toggle */}
+            <button
+              onClick={() => setIsLogExpanded(!isLogExpanded)}
+              className="px-2 py-1 rounded-xl border border-[#2a2a38] bg-[#121219] text-slate-400 hover:text-white text-[10px] font-mono font-bold flex items-center gap-1 transition cursor-pointer"
+            >
+              {isLogExpanded ? (
+                <>
+                  <Minimize2 className="w-3 h-3" />
+                  <span>標準</span>
+                </>
+              ) : (
+                <>
+                  <Maximize2 className="w-3 h-3" />
+                  <span>拡大</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
+
+        {/* Log List Scroll Container */}
+        <div
+          ref={logContainerRef}
+          className={`space-y-1.5 overflow-y-auto pr-1.5 font-mono text-xs scrollbar-thin scrollbar-thumb-amber-500/30 scrollbar-track-slate-950/80 transition-all duration-300 relative z-10 ${
+            isLogExpanded ? 'max-h-96 min-h-[280px]' : 'max-h-48 min-h-[160px]'
+          }`}
+        >
+          {filteredLogs.length === 0 ? (
+            <div className="py-8 text-center text-slate-600 text-xs font-mono">
+              該当カテゴリーの戦闘プロセスはありません。
+            </div>
+          ) : (
+            filteredLogs.map((log) => {
+              let badgeColor = 'text-slate-400 bg-slate-900 border-slate-800';
+              let textClass = 'text-slate-300';
+
+              if (log.category === 'attack') {
+                badgeColor = log.isCrit 
+                  ? 'text-amber-300 bg-amber-950/80 border-amber-500/50 shadow-[0_0_8px_rgba(245,158,11,0.2)]' 
+                  : 'text-rose-300 bg-rose-950/60 border-rose-800/40';
+                textClass = log.isCrit ? 'text-amber-200 font-bold' : 'text-slate-200';
+              } else if (log.category === 'magic') {
+                badgeColor = 'text-purple-300 bg-purple-950/60 border-purple-800/40';
+                textClass = 'text-purple-200 font-medium';
+              } else if (log.category === 'dodge') {
+                badgeColor = 'text-cyan-300 bg-cyan-950/60 border-cyan-800/40';
+                textClass = 'text-cyan-200 font-bold';
+              } else if (log.category === 'item') {
+                badgeColor = 'text-emerald-300 bg-emerald-950/60 border-emerald-800/40';
+                textClass = 'text-emerald-200';
+              } else if (log.category === 'defend') {
+                badgeColor = 'text-blue-300 bg-blue-950/60 border-blue-800/40';
+                textClass = 'text-blue-200';
+              } else if (log.category === 'status') {
+                badgeColor = 'text-yellow-300 bg-yellow-950/60 border-yellow-800/40';
+                textClass = 'text-yellow-200';
+              } else if (log.category === 'system') {
+                badgeColor = 'text-amber-400 bg-amber-950/80 border-amber-500/50';
+                textClass = 'text-amber-300 font-bold';
+              }
+
+              return (
+                <motion.div
+                  key={log.id}
+                  initial={{ opacity: 0, x: -6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.18 }}
+                  className="p-2 rounded-xl bg-[#0c0c11]/90 hover:bg-[#13131b] border border-[#1a1a23] hover:border-[#2a2a38] transition flex flex-col gap-1 group"
+                >
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {/* Turn & Time Badge */}
+                    <span className="text-[10px] font-mono text-slate-500 bg-[#14141c] px-1.5 py-0.5 rounded border border-[#22222d] shrink-0 font-bold">
+                      T{log.turn} • {log.time}
+                    </span>
+
+                    {/* Category tag */}
+                    <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded border font-mono shrink-0 ${badgeColor}`}>
+                      {log.category.toUpperCase()}
+                    </span>
+
+                    {/* Main log title */}
+                    <span className={`text-xs leading-relaxed flex-1 ${textClass}`}>
+                      {log.title}
+                    </span>
+                  </div>
+
+                  {/* Detailed math formula / stats breakdown */}
+                  {log.detail && (
+                    <div className="pl-2 border-l-2 border-amber-500/30 text-[10px] text-slate-400 font-mono tracking-tight opacity-85 group-hover:opacity-100 transition">
+                      {log.detail}
+                    </div>
+                  )}
+                </motion.div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Jump to bottom button when auto-scroll is OFF */}
+        {!autoScroll && (
+          <button
+            onClick={() => {
+              setAutoScroll(true);
+              if (logContainerRef.current) {
+                logContainerRef.current.scrollTo({ top: logContainerRef.current.scrollHeight, behavior: 'smooth' });
+              }
+            }}
+            className="absolute bottom-3 right-5 z-20 px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black rounded-full shadow-[0_0_15px_rgba(245,158,11,0.5)] flex items-center gap-1.5 cursor-pointer animate-pulse font-mono"
+          >
+            <ArrowDown className="w-3.5 h-3.5" />
+            <span>最新ログへ移動</span>
+          </button>
+        )}
       </div>
     </div>
   );

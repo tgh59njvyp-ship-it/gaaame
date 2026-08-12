@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { RACES, MAGIC_TYPES, CLASSES } from '../data/gameData';
 import { RaceInfo, MagicTypeInfo, ClassInfo, CharacterState } from '../types';
 import { getInitialQuests } from '../utils/rankUtils';
+import { getInitialBeginnerQuests } from '../utils/beginnerQuests';
 import { MASSIVE_SPELL_LIST } from '../data/massiveSpellList';
 import { Sword, Wand2, Shield, Flame, Sparkles, Sun, Zap, Heart, ShieldAlert, User, Check, Play, Crown, Skull, Trash2, AlertTriangle } from 'lucide-react';
 
@@ -127,6 +128,10 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({
       spd: calculatedStats.spd,
       crit: calculatedStats.crit,
       gold: 150 + reincarnationCount * 250,
+      gems: 3000, // 初回10連用ジェムプレゼント！
+      gacha10Tickets: 0,
+      eventTokens: 0,
+      beginnerQuests: getInitialBeginnerQuests(),
       spells: startingSpells,
       inventory: [
         { id: 'potion_1', name: '小ポーション', type: 'potion', rarity: 'common', effect: { type: 'healHp', value: 50 }, desc: 'HPを50回復する。', price: 30, icon: 'FlaskConical' },
@@ -604,8 +609,8 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({
 
       {/* Hard Reset Confirmation Modal */}
       {showResetModal && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-[#120808] border-2 border-red-600 max-w-md w-full rounded-3xl p-6 shadow-[0_0_50px_rgba(220,38,38,0.3)] text-slate-100 relative animate-fadeIn">
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-backdropFadeIn">
+          <div className="bg-[#120808] border-2 border-red-600 max-w-md w-full rounded-3xl p-6 shadow-[0_0_50px_rgba(220,38,38,0.3)] text-slate-100 relative animate-modalExpand">
             <div className="flex items-center gap-3 text-red-500 mb-3">
               <div className="w-10 h-10 rounded-2xl bg-red-950/80 border border-red-500/60 flex items-center justify-center shrink-0">
                 <AlertTriangle className="w-6 h-6 text-red-500" />
