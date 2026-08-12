@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { CharacterState, Item } from '../types';
 import { getTitleBonuses, TITLES } from '../utils/titleUtils';
 import { getSkillStatsBonus, ALL_SKILLS, unlockSkillNode, SkillNode } from '../utils/skillUtils';
-import { calculateCombatPower, canReincarnate, REINCARNATION_POWER_REQ } from '../utils/combatPower';
+import { calculateCombatPower, canReincarnate, getReincarnationPowerReq, getReincarnationLevelReq } from '../utils/combatPower';
 import { 
   X, Sword, Shield, Backpack, Sparkles, Check, Award, Share2, 
-  Lock, ArrowRight, Zap, RefreshCw, Star, Info, Flame, FlameKindling, Crown
+  Lock, ArrowRight, Zap, RefreshCw, Star, Info, Flame, FlameKindling, Crown, Trash2, AlertTriangle
 } from 'lucide-react';
 
 interface InventoryModalProps {
@@ -25,6 +25,7 @@ export const InventoryModal: React.FC<InventoryModalProps> = ({
   const [activeTab, setActiveTab] = useState<'status' | 'skills'>('status');
   const [skillFeedback, setSkillFeedback] = useState<{ text: string; isError: boolean } | null>(null);
   const [showReincarnateConfirm, setShowReincarnateConfirm] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   // Default to developer_mode if no title set
   const currentTitleId = character.title || 'developer_mode';
@@ -40,10 +41,17 @@ export const InventoryModal: React.FC<InventoryModalProps> = ({
   const totalMaxMp = character.maxMp + titleBonus.mp + skillBonus.mp;
   const totalCrit = Math.min(100, character.crit + titleBonus.crit + skillBonus.crit);
 
-  // Combat Power
+  // Combat Power and Reincarnation Reqs
   const combatPower = calculateCombatPower(character);
   const isReincarnationEligible = canReincarnate(character);
   const reincCount = character.reincarnationCount || 0;
+  const reqPower = getReincarnationPowerReq(reincCount);
+  const reqLevel = getReincarnationLevelReq(reincCount);
+
+  const handleHardReset = () => {
+    localStorage.clear();
+    window.location.reload();
+  };
 
   const handleEquip = (item: Item, index: number) => {
     let newEquipment = { ...character.equipment };
@@ -304,13 +312,13 @@ https://ai.studio/build
                 <div>
                   <div className="flex items-center gap-2 text-amber-300 font-bold text-sm mb-1">
                     <Flame className="w-5 h-5 text-amber-400 animate-pulse" />
-                    <span>意志を継ぐものとして昇華 (転生システム)</span>
-                    <span className="text-xs bg-amber-950 text-amber-300 border border-amber-700/60 px-2 py-0.5 rounded-full font-mono">
-                      転生世代: 第 {reincCount} 世代
+                    <span>意志を継ぐものとして昇華 (高難易度転生)</span>
+                    <span className="text-xs bg-amber-950 text-amber-300 border border-amber-700/60 px-2 py-0.5 rounded-full font-mono font-bold">
+                      現在: 第 {reincCount} 世代
                     </span>
                   </div>
                   <p className="text-xs text-slate-300 leading-relaxed max-w-lg">
-                    戦闘力が <strong className="text-amber-400">{REINCARNATION_POWER_REQ} CP</strong> 以上の領域に達すると、魂を昇華して転生可能！ 恒久バフを獲得し、<strong className="text-purple-300">8種の伝説種族＆7種の秘奥義魔法系統</strong> が新たに解放されます。
+                    【次世代条件】 戦闘力 <strong className="text-amber-400">{reqPower} CP</strong> ＆ レベル <strong className="text-amber-400">Lv.{reqLevel}</strong> 以上！ 昇華するとステータス恒久倍増・<strong className="text-purple-300">200種超の世代専用秘奥義魔法・伝説種族</strong> が一挙解禁！
                   </p>
                 </div>
 
@@ -321,15 +329,17 @@ https://ai.studio/build
                       className="w-full sm:w-auto px-5 py-3 bg-gradient-to-r from-amber-500 via-purple-600 to-indigo-600 hover:from-amber-400 hover:to-indigo-500 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-amber-950/50 border border-amber-300/60 flex items-center justify-center gap-2 transition transform hover:scale-105 active:scale-95 cursor-pointer animate-pulse"
                     >
                       <Sparkles className="w-4 h-4 text-amber-200" />
-                      意志を継ぐものとして昇華する！
+                      第 {reincCount + 1} 世代へ昇華する！
                     </button>
                   ) : (
-                    <div className="text-right">
-                      <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-950/80 border border-slate-800 text-slate-400 rounded-xl text-xs font-mono font-bold">
-                        <Lock className="w-3.5 h-3.5 text-slate-500" />
-                        到達CP: {combatPower} / {REINCARNATION_POWER_REQ}
+                    <div className="text-right space-y-1">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-950/90 border border-amber-500/30 text-amber-300 rounded-xl text-xs font-mono font-bold">
+                        <Lock className="w-3.5 h-3.5 text-amber-400" />
+                        CP: {combatPower} / {reqPower}
                       </span>
-                      <p className="text-[10px] text-slate-500 mt-1">戦闘力 {REINCARNATION_POWER_REQ} CP 到達で解禁</p>
+                      <div className="text-[10px] text-slate-400 font-mono font-semibold">
+                        Lv: <span className={character.level >= reqLevel ? 'text-emerald-400 font-bold' : 'text-slate-400'}>{character.level}</span> / {reqLevel}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -731,6 +741,20 @@ https://ai.studio/build
           </div>
         )}
 
+        {/* Bottom Danger Zone (Data Reset) Button */}
+        <div className="mt-6 pt-4 border-t border-[#2d2d30] flex justify-between items-center">
+          <div className="text-[10px] text-slate-500">
+            セーブデータを消去して最初からやり直したい場合はこちら
+          </div>
+          <button
+            onClick={() => setShowResetConfirm(true)}
+            className="px-3.5 py-2 bg-red-950/40 hover:bg-red-900/60 border border-red-800/60 text-red-400 hover:text-red-200 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            データを完全リセット
+          </button>
+        </div>
+
       </div>
 
       {/* Reincarnation Confirmation Modal */}
@@ -799,6 +823,47 @@ https://ai.studio/build
               >
                 <Flame className="w-4 h-4 text-amber-200" />
                 昇華・転生を実行する！
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hard Reset Confirmation Modal */}
+      {showResetConfirm && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-[#120808] border-2 border-red-600 max-w-md w-full rounded-3xl p-6 shadow-[0_0_50px_rgba(220,38,38,0.3)] text-slate-100 relative animate-fadeIn">
+            <div className="flex items-center gap-3 text-red-500 mb-3">
+              <div className="w-10 h-10 rounded-2xl bg-red-950/80 border border-red-500/60 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-6 h-6 text-red-500" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-red-400">【警告】全データ完全初期化</h3>
+                <p className="text-xs text-red-300/80">セーブデータの完全削除</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed mb-4">
+              これまでの進行状況、キャラクター、獲得した称号、所持アイテム、および <strong className="text-amber-400">転生・昇華履歴（世代数）</strong> のすべてのセーブデータを完全に削除して最初からやり直しますか？
+            </p>
+
+            <div className="p-3 bg-red-950/40 rounded-xl border border-red-900/60 text-[11px] text-red-300 font-bold mb-6">
+              ※ この操作は取り消せません。すべて初期状態に戻ります。
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowResetConfirm(false)}
+                className="flex-1 py-3 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 font-bold text-xs rounded-xl transition cursor-pointer"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={handleHardReset}
+                className="flex-1 py-3 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white font-black text-xs rounded-xl shadow-lg border border-red-400/60 flex items-center justify-center gap-1.5 transition cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4 text-white" />
+                完全に初期化する
               </button>
             </div>
           </div>

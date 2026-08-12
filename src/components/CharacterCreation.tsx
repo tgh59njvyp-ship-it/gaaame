@@ -3,7 +3,7 @@ import { RACES, MAGIC_TYPES, CLASSES } from '../data/gameData';
 import { RaceInfo, MagicTypeInfo, ClassInfo, CharacterState } from '../types';
 import { getInitialQuests } from '../utils/rankUtils';
 import { MASSIVE_SPELL_LIST } from '../data/massiveSpellList';
-import { Sword, Wand2, Shield, Flame, Sparkles, Sun, Zap, Heart, ShieldAlert, User, Check, Play, Crown, Skull } from 'lucide-react';
+import { Sword, Wand2, Shield, Flame, Sparkles, Sun, Zap, Heart, ShieldAlert, User, Check, Play, Crown, Skull, Trash2, AlertTriangle } from 'lucide-react';
 
 
 interface CharacterCreationProps {
@@ -31,6 +31,17 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({
   const [selectedMagic, setSelectedMagic] = useState<MagicTypeInfo>(MAGIC_TYPES[0]);
   const [selectedClass, setSelectedClass] = useState<ClassInfo>(CLASSES[0]);
   const [heroName, setHeroName] = useState<string>('アストラル');
+  const [showResetModal, setShowResetModal] = useState<boolean>(false);
+
+  // Filters for tabs
+  const [raceFilter, setRaceFilter] = useState<'all' | 'base' | 'reinc1' | 'reinc2+'>('all');
+  const [magicFilter, setMagicFilter] = useState<'all' | 'base' | 'reinc1' | 'reinc2+'>('all');
+  const [classFilter, setClassFilter] = useState<'all' | 'base' | 'reinc1' | 'reinc2+'>('all');
+
+  const handleHardReset = () => {
+    localStorage.clear();
+    window.location.reload();
+  };
 
   const getIconComponent = (iconName: string) => {
     switch (iconName) {
@@ -158,58 +169,146 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({
     onStartAdventure(newChar);
   };
 
+  const filteredRaces = RACES.filter((r) => {
+    if (raceFilter === 'base') return !r.isReincarnationOnly;
+    if (raceFilter === 'reinc1') return r.isReincarnationOnly && (r.minReincarnationReq || 1) === 1;
+    if (raceFilter === 'reinc2+') return r.isReincarnationOnly && (r.minReincarnationReq || 1) >= 2;
+    return true;
+  });
+
+  const filteredMagics = MAGIC_TYPES.filter((m) => {
+    if (magicFilter === 'base') return !m.isReincarnationOnly;
+    if (magicFilter === 'reinc1') return m.isReincarnationOnly && (m.minReincarnationReq || 1) === 1;
+    if (magicFilter === 'reinc2+') return m.isReincarnationOnly && (m.minReincarnationReq || 1) >= 2;
+    return true;
+  });
+
+  const filteredClasses = CLASSES.filter((c) => {
+    if (classFilter === 'base') return !c.isReincarnationOnly;
+    if (classFilter === 'reinc1') return c.isReincarnationOnly && (c.minReincarnationReq || 1) === 1;
+    if (classFilter === 'reinc2+') return c.isReincarnationOnly && (c.minReincarnationReq || 1) >= 2;
+    return true;
+  });
+
+  const totalCp = Math.floor(
+    calculatedStats.hp * 0.8 +
+    calculatedStats.mp * 0.8 +
+    calculatedStats.atk * 3.5 +
+    calculatedStats.def * 3 +
+    calculatedStats.spd * 2 +
+    calculatedStats.crit * 4
+  );
+
   return (
-    <div className="max-w-5xl mx-auto p-4 md:p-8 text-slate-100">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl md:text-5xl font-black bg-gradient-to-r from-amber-400 via-purple-300 to-indigo-400 bg-clip-text text-transparent mb-3">
+    <div className="max-w-5xl mx-auto p-2 md:p-6 text-[#e2e2e2]">
+      <div className="text-center mb-6">
+        <h1 className="text-2xl md:text-4xl font-black text-[#d4af37] tracking-widest mb-2 drop-shadow-[0_2px_10px_rgba(196,166,97,0.3)]">
           Astral Rogue: 元素の迷宮
         </h1>
-        <p className="text-slate-400 text-sm md:text-base">
-          種族、魔法、役職を選択し、強大な魔物が巣食う5つのステージを攻略せよ！
+        <p className="text-[#a09a8a] text-xs md:text-sm">
+          種族・魔法・役職を選択し、最高位のビルドで迷宮を踏破せよ！
         </p>
 
         {reincarnationCount > 0 && (
-          <div className="mt-4 p-4 bg-gradient-to-r from-amber-950/80 via-purple-950/80 to-slate-900 border-2 border-amber-400/80 rounded-2xl max-w-2xl mx-auto shadow-[0_0_25px_rgba(245,158,11,0.25)] relative overflow-hidden">
-            <div className="flex items-center justify-center gap-2 text-amber-300 font-extrabold text-sm md:text-base mb-1 tracking-wider">
-              <Sparkles className="w-5 h-5 text-amber-400 animate-pulse" />
-              <span>【転生・昇華ボーナス適用中】 転生世代: 第 {reincarnationCount} 世代</span>
-              <Sparkles className="w-5 h-5 text-amber-400 animate-pulse" />
+          <div className="mt-3 p-3 bg-[#18150f] border border-[#c4a661]/80 rounded-2xl max-w-2xl mx-auto shadow-[0_0_20px_rgba(196,166,97,0.2)]">
+            <div className="flex items-center justify-center gap-2 text-[#f3e5be] font-black text-xs md:text-sm tracking-wider">
+              <Sparkles className="w-4 h-4 text-[#d4af37] animate-pulse" />
+              <span>【転生・昇華ボーナス適用中】 第 {reincarnationCount} 世代の英雄</span>
+              <Sparkles className="w-4 h-4 text-[#d4af37] animate-pulse" />
             </div>
-            <div className="flex flex-wrap justify-center gap-3 text-xs font-mono text-amber-200 mt-2">
-              <span className="bg-amber-950/60 px-2.5 py-1 rounded border border-amber-800/60">HP/MP: +{reincarnationCount * 25}%</span>
-              <span className="bg-amber-950/60 px-2.5 py-1 rounded border border-amber-800/60">攻撃/防御: +{reincarnationCount * 15}%</span>
-              <span className="bg-amber-950/60 px-2.5 py-1 rounded border border-amber-800/60">EXP/GOLD: +{reincarnationCount * 20}%</span>
-              <span className="bg-purple-950/60 px-2.5 py-1 rounded border border-purple-800/60 text-purple-300">伝説種族＆秘奥義魔法全解禁</span>
+            <div className="flex flex-wrap justify-center gap-2 text-[11px] font-mono text-[#e2c98a] mt-2">
+              <span className="bg-[#100e0a] px-2 py-0.5 rounded border border-[#3a3322]">HP/MP: +{reincarnationCount * 25}%</span>
+              <span className="bg-[#100e0a] px-2 py-0.5 rounded border border-[#3a3322]">攻撃/防御: +{reincarnationCount * 15}%</span>
+              <span className="bg-[#100e0a] px-2 py-0.5 rounded border border-[#3a3322]">EXP/GOLD: +{reincarnationCount * 20}%</span>
             </div>
           </div>
         )}
       </div>
 
-      <div className="bg-slate-900/80 backdrop-blur border border-slate-700/60 rounded-2xl p-6 mb-6 shadow-2xl">
-        <label className="block text-sm font-semibold text-amber-300 mb-2">冒険者の名前</label>
-        <input
-          type="text"
-          value={heroName}
-          onChange={(e) => setHeroName(e.target.value)}
-          maxLength={15}
-          className="w-full md:w-80 bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-amber-400 font-medium"
-          placeholder="名前を入力..."
-        />
+      {/* Sticky Character Live Preview HUD */}
+      <div className="sticky top-16 z-30 mb-6 bg-[#0c0d11]/95 backdrop-blur-md border border-[#c4a661]/60 rounded-2xl p-4 shadow-[0_10px_35px_rgba(0,0,0,0.9)]">
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+            <div className="w-full sm:w-auto flex items-center gap-2">
+              <span className="text-xs font-bold text-[#d4af37] shrink-0">名前:</span>
+              <input
+                type="text"
+                value={heroName}
+                onChange={(e) => setHeroName(e.target.value)}
+                maxLength={15}
+                className="bg-[#07070a] border border-[#3a3528] rounded-lg px-3 py-1.5 text-white text-xs font-bold focus:outline-none focus:border-[#c4a661] w-full sm:w-40"
+                placeholder="名前を入力..."
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5 text-xs">
+              <span className="bg-[#1c1810] text-[#f3e5be] border border-[#4a422f] px-2.5 py-1 rounded-md font-bold">
+                {selectedRace.name.split(' ')[0]}
+              </span>
+              <span className="bg-[#1c1810] text-[#f3e5be] border border-[#4a422f] px-2.5 py-1 rounded-md font-bold">
+                {selectedMagic.name.split(' ')[0]}
+              </span>
+              <span className="bg-[#1c1810] text-[#f3e5be] border border-[#4a422f] px-2.5 py-1 rounded-md font-bold">
+                {selectedClass.name.split(' ')[0]}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 text-xs font-mono w-full lg:w-auto justify-between lg:justify-end overflow-x-auto pb-1 lg:pb-0">
+            <div className="bg-[#18150f] border border-[#c4a661] px-3 py-1 rounded-lg text-[#d4af37] font-extrabold flex items-center gap-1 shrink-0 shadow">
+              <span>CP</span>
+              <span className="text-sm">{totalCp}</span>
+            </div>
+            <div className="flex items-center gap-2 text-[11px] shrink-0">
+              <span className="text-[#f3e5be] font-bold">HP {calculatedStats.hp}</span>
+              <span className="text-[#e2c98a] font-bold">MP {calculatedStats.mp}</span>
+              <span className="text-[#e5a93c] font-bold">ATK {calculatedStats.atk}</span>
+              <span className="text-[#b8b09d] font-bold">DEF {calculatedStats.def}</span>
+              <span className="text-[#d4af37] font-bold">SPD {calculatedStats.spd}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Step 1: Race */}
       <div className="mb-8">
-        <h2 className="text-lg font-bold text-indigo-300 mb-3 flex items-center justify-between">
-          <span className="flex items-center gap-2">
-            <span className="bg-indigo-600/30 text-indigo-300 w-7 h-7 rounded-full flex items-center justify-center text-sm border border-indigo-500/50">1</span>
-            種族を選択 (Race)
-          </span>
-          <span className="text-xs text-amber-400 font-normal">
-            全 {RACES.length} 種族（転生限定種族: 8種）
-          </span>
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {RACES.map((race) => {
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+          <h2 className="text-base md:text-lg font-black text-[#d4af37] flex items-center gap-2">
+            <span className="bg-[#1c1810] text-[#c4a661] w-6 h-6 rounded-full flex items-center justify-center text-xs border border-[#c4a661]/50">1</span>
+            種族を選択 ({filteredRaces.length}種類表示)
+          </h2>
+
+          {/* Category Filter Tabs */}
+          <div className="flex items-center gap-1 bg-[#0c0d11] p-1 rounded-xl border border-[#2a2720] text-[11px]">
+            <button
+              onClick={() => setRaceFilter('all')}
+              className={`px-2.5 py-1 rounded-lg font-bold transition ${raceFilter === 'all' ? 'bg-[#c4a661] text-[#07070a]' : 'text-[#888378] hover:text-[#e2c98a]'}`}
+            >
+              すべて ({RACES.length})
+            </button>
+            <button
+              onClick={() => setRaceFilter('base')}
+              className={`px-2.5 py-1 rounded-lg font-bold transition ${raceFilter === 'base' ? 'bg-[#c4a661] text-[#07070a]' : 'text-[#888378] hover:text-[#e2c98a]'}`}
+            >
+              基本種族 (7)
+            </button>
+            <button
+              onClick={() => setRaceFilter('reinc1')}
+              className={`px-2.5 py-1 rounded-lg font-bold transition ${raceFilter === 'reinc1' ? 'bg-[#c4a661] text-[#07070a]' : 'text-[#888378] hover:text-[#e2c98a]'}`}
+            >
+              転生1世代 (10)
+            </button>
+            <button
+              onClick={() => setRaceFilter('reinc2+')}
+              className={`px-2.5 py-1 rounded-lg font-bold transition ${raceFilter === 'reinc2+' ? 'bg-[#c4a661] text-[#07070a]' : 'text-[#888378] hover:text-[#e2c98a]'}`}
+            >
+              転生2世代+ (11)
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-h-[380px] overflow-y-auto pr-1">
+          {filteredRaces.map((race) => {
             const isSelected = selectedRace.id === race.id;
             const isLocked = race.isReincarnationOnly && reincarnationCount < (race.minReincarnationReq || 1);
 
@@ -219,43 +318,40 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({
                 onClick={() => {
                   if (!isLocked) setSelectedRace(race);
                 }}
-                className={`rounded-xl p-4 transition-all border relative flex flex-col justify-between ${
+                className={`rounded-xl p-3.5 transition-all border relative flex flex-col justify-between ${
                   isLocked 
-                    ? 'opacity-60 bg-slate-950/80 border-slate-800 cursor-not-allowed grayscale' 
-                    : race.isReincarnationOnly
-                      ? isSelected
-                        ? 'bg-gradient-to-b from-amber-950/90 via-purple-900/80 to-slate-900 border-amber-400 shadow-xl shadow-amber-950/60 ring-2 ring-amber-400/80 cursor-pointer'
-                        : 'bg-gradient-to-b from-purple-950/40 to-slate-900/80 border-purple-800/80 hover:border-amber-400/80 hover:bg-purple-950/70 cursor-pointer'
-                      : isSelected
-                        ? 'bg-gradient-to-b from-indigo-900/80 to-slate-900 border-indigo-400 shadow-lg shadow-indigo-950/50 ring-2 ring-indigo-500/50 cursor-pointer'
-                        : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-900/90 cursor-pointer'
+                    ? 'opacity-50 bg-[#08080a] border-[#1c1a15] cursor-not-allowed grayscale' 
+                    : isSelected
+                      ? 'bg-gradient-to-b from-[#1c1810] to-[#101117] border-[#c4a661] shadow-[0_0_15px_rgba(196,166,97,0.25)] ring-1 ring-[#d4af37] cursor-pointer'
+                      : 'bg-[#101117] border-[#25221b] hover:border-[#c4a661]/60 hover:bg-[#151620] cursor-pointer'
                 }`}
               >
                 {isSelected && !isLocked && (
-                  <div className="absolute top-3 right-3 text-indigo-400 bg-indigo-950/80 p-1 rounded-full border border-indigo-500/50">
-                    <Check className="w-4 h-4" />
+                  <div className="absolute top-2.5 right-2.5 text-[#d4af37] bg-[#1a1710] p-1 rounded-full border border-[#c4a661] shadow">
+                    <Check className="w-3.5 h-3.5" />
                   </div>
                 )}
                 {race.isReincarnationOnly && (
-                  <div className="mb-2">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${
+                  <div className="mb-1.5">
+                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${
                       isLocked 
-                        ? 'bg-slate-800 text-slate-400 border-slate-700'
-                        : 'bg-amber-950/90 text-amber-300 border-amber-500/80 animate-pulse'
+                        ? 'bg-[#18181f] text-[#777] border-[#2d2d38]'
+                        : 'bg-[#221c10] text-[#e2c98a] border-[#c4a661]/80'
                     }`}>
-                      {isLocked ? '✦ 転生で解放' : '✦ 転生限定種族'}
+                      {isLocked ? `✦ 転生第${race.minReincarnationReq || 1}世代で解放` : `✦ 転生第${race.minReincarnationReq || 1}世代限定`}
                     </span>
                   </div>
                 )}
                 <div>
-                  <div className="text-indigo-400 mb-2">{getIconComponent(race.icon)}</div>
-                  <h3 className="font-bold text-white mb-1 flex items-center justify-between">
-                    <span>{race.name}</span>
-                  </h3>
-                  <p className="text-xs text-slate-400 mb-3 leading-relaxed">{race.desc}</p>
+                  <div className="text-[#c4a661] mb-1 flex items-center justify-between">
+                    {getIconComponent(race.icon)}
+                    <span className="text-[10px] font-mono text-[#a09a8a]">HP+{race.bonuses.hp} ATK+{race.bonuses.atk}</span>
+                  </div>
+                  <h3 className="font-extrabold text-white text-sm mb-1">{race.name}</h3>
+                  <p className="text-[11px] text-[#b8b0a0] mb-2 leading-tight">{race.desc}</p>
                 </div>
-                <div className="bg-slate-950/60 rounded-lg p-2 text-[11px] text-amber-300/90 border border-slate-800/80">
-                  <span className="font-semibold block text-amber-400">{race.traitName}</span>
+                <div className="bg-[#08080b] rounded-lg p-2 text-[10px] text-[#e2c98a] border border-[#22201a]">
+                  <span className="font-bold block text-[#d4af37]">{race.traitName}</span>
                   {race.traitDesc}
                 </div>
               </div>
@@ -266,17 +362,43 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({
 
       {/* Step 2: Magic Type */}
       <div className="mb-8">
-        <h2 className="text-lg font-bold text-purple-300 mb-3 flex items-center justify-between">
-          <span className="flex items-center gap-2">
-            <span className="bg-purple-600/30 text-purple-300 w-7 h-7 rounded-full flex items-center justify-center text-sm border border-purple-500/50">2</span>
-            魔法の種類を選択 (Magic Type)
-          </span>
-          <span className="text-xs text-purple-400 font-normal">
-            全 {MAGIC_TYPES.length} 系統（転生解禁秘奥義: 7種）
-          </span>
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {MAGIC_TYPES.map((magic) => {
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+          <h2 className="text-base md:text-lg font-black text-[#d4af37] flex items-center gap-2">
+            <span className="bg-[#1c1810] text-[#c4a661] w-6 h-6 rounded-full flex items-center justify-center text-xs border border-[#c4a661]/50">2</span>
+            魔法系統を選択 ({filteredMagics.length}系統表示)
+          </h2>
+
+          {/* Category Filter Tabs */}
+          <div className="flex items-center gap-1 bg-[#0c0d11] p-1 rounded-xl border border-[#2a2720] text-[11px]">
+            <button
+              onClick={() => setMagicFilter('all')}
+              className={`px-2.5 py-1 rounded-lg font-bold transition ${magicFilter === 'all' ? 'bg-[#c4a661] text-[#07070a]' : 'text-[#888378] hover:text-[#e2c98a]'}`}
+            >
+              すべて ({MAGIC_TYPES.length})
+            </button>
+            <button
+              onClick={() => setMagicFilter('base')}
+              className={`px-2.5 py-1 rounded-lg font-bold transition ${magicFilter === 'base' ? 'bg-[#c4a661] text-[#07070a]' : 'text-[#888378] hover:text-[#e2c98a]'}`}
+            >
+              基本属性 (5)
+            </button>
+            <button
+              onClick={() => setMagicFilter('reinc1')}
+              className={`px-2.5 py-1 rounded-lg font-bold transition ${magicFilter === 'reinc1' ? 'bg-[#c4a661] text-[#07070a]' : 'text-[#888378] hover:text-[#e2c98a]'}`}
+            >
+              転生1世代 (7)
+            </button>
+            <button
+              onClick={() => setMagicFilter('reinc2+')}
+              className={`px-2.5 py-1 rounded-lg font-bold transition ${magicFilter === 'reinc2+' ? 'bg-[#c4a661] text-[#07070a]' : 'text-[#888378] hover:text-[#e2c98a]'}`}
+            >
+              転生2世代+ (8)
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-h-[380px] overflow-y-auto pr-1">
+          {filteredMagics.map((magic) => {
             const isSelected = selectedMagic.id === magic.id;
             const isLocked = magic.isReincarnationOnly && reincarnationCount < (magic.minReincarnationReq || 1);
 
@@ -286,47 +408,45 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({
                 onClick={() => {
                   if (!isLocked) setSelectedMagic(magic);
                 }}
-                className={`rounded-xl p-4 transition-all border relative flex flex-col justify-between ${
+                className={`rounded-xl p-3.5 transition-all border relative flex flex-col justify-between ${
                   isLocked
-                    ? 'opacity-60 bg-slate-950/80 border-slate-800 cursor-not-allowed grayscale'
-                    : magic.isReincarnationOnly
-                      ? isSelected
-                        ? 'bg-gradient-to-b from-purple-950/90 via-indigo-900/80 to-slate-900 border-purple-400 shadow-xl shadow-purple-950/60 ring-2 ring-purple-400/80 cursor-pointer'
-                        : 'bg-gradient-to-b from-purple-950/40 to-slate-900/80 border-purple-800/80 hover:border-purple-400/80 hover:bg-purple-950/70 cursor-pointer'
-                      : isSelected
-                        ? 'bg-gradient-to-b from-purple-900/80 to-slate-900 border-purple-400 shadow-lg shadow-purple-950/50 ring-2 ring-purple-500/50 cursor-pointer'
-                        : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-900/90 cursor-pointer'
+                    ? 'opacity-50 bg-[#08080a] border-[#1c1a15] cursor-not-allowed grayscale'
+                    : isSelected
+                      ? 'bg-gradient-to-b from-[#1c1810] to-[#101117] border-[#c4a661] shadow-[0_0_15px_rgba(196,166,97,0.25)] ring-1 ring-[#d4af37] cursor-pointer'
+                      : 'bg-[#101117] border-[#25221b] hover:border-[#c4a661]/60 hover:bg-[#151620] cursor-pointer'
                 }`}
               >
                 {isSelected && !isLocked && (
-                  <div className="absolute top-3 right-3 text-purple-400 bg-purple-950/80 p-1 rounded-full border border-purple-500/50">
-                    <Check className="w-4 h-4" />
+                  <div className="absolute top-2.5 right-2.5 text-[#d4af37] bg-[#1a1710] p-1 rounded-full border border-[#c4a661] shadow">
+                    <Check className="w-3.5 h-3.5" />
                   </div>
                 )}
                 {magic.isReincarnationOnly && (
-                  <div className="mb-2">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${
+                  <div className="mb-1.5">
+                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${
                       isLocked
-                        ? 'bg-slate-800 text-slate-400 border-slate-700'
-                        : 'bg-purple-950/90 text-purple-300 border-purple-500/80 animate-pulse'
+                        ? 'bg-[#18181f] text-[#777] border-[#2d2d38]'
+                        : 'bg-[#221c10] text-[#e2c98a] border-[#c4a661]/80'
                     }`}>
-                      {isLocked ? '✦ 転生で解放' : '✦ 秘奥義系統'}
+                      {isLocked ? `✦ 転生第${magic.minReincarnationReq || 1}世代で解放` : `✦ 転生第${magic.minReincarnationReq || 1}世代秘奥義`}
                     </span>
                   </div>
                 )}
                 <div>
-                  <div className={`w-8 h-8 rounded-lg bg-gradient-to-tr ${magic.color} flex items-center justify-center text-white mb-3 shadow-md`}>
-                    <Sparkles className="w-4 h-4" />
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <div className="w-6 h-6 rounded bg-[#2a2416] border border-[#c4a661] flex items-center justify-center text-[#d4af37] shadow">
+                      <Sparkles className="w-3.5 h-3.5" />
+                    </div>
+                    <h3 className="font-extrabold text-white text-sm">{magic.name}</h3>
                   </div>
-                  <h3 className="font-bold text-white mb-1">{magic.name}</h3>
-                  <p className="text-xs text-slate-400 mb-3 leading-relaxed">{magic.desc}</p>
+                  <p className="text-[11px] text-[#b8b0a0] mb-2 leading-tight">{magic.desc}</p>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[10px] text-purple-300 font-semibold uppercase tracking-wider">習得魔法:</span>
+                  <span className="text-[9px] text-[#c4a661] font-bold uppercase tracking-wider">初期修得魔法:</span>
                   {magic.spells.map((s) => (
-                    <div key={s.id} className="text-xs bg-slate-950/70 px-2 py-1 rounded text-slate-300 flex justify-between">
+                    <div key={s.id} className="text-[11px] bg-[#08080b] px-2 py-0.5 rounded text-[#d1cbbe] flex justify-between border border-[#22201a]">
                       <span>{s.name}</span>
-                      <span className="text-purple-400">MP{s.mpCost}</span>
+                      <span className="text-[#d4af37] font-bold">MP{s.mpCost}</span>
                     </div>
                   ))}
                 </div>
@@ -338,41 +458,91 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({
 
       {/* Step 3: Class / Role */}
       <div className="mb-8">
-        <h2 className="text-lg font-bold text-emerald-300 mb-3 flex items-center gap-2">
-          <span className="bg-emerald-600/30 text-emerald-300 w-7 h-7 rounded-full flex items-center justify-center text-sm border border-emerald-500/50">3</span>
-          役職を選択 (Class)
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          {CLASSES.map((cls) => {
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+          <h2 className="text-base md:text-lg font-black text-[#d4af37] flex items-center gap-2">
+            <span className="bg-[#1c1810] text-[#c4a661] w-6 h-6 rounded-full flex items-center justify-center text-xs border border-[#c4a661]/50">3</span>
+            役職を選択 ({filteredClasses.length}職種表示)
+          </h2>
+
+          {/* Category Filter Tabs */}
+          <div className="flex items-center gap-1 bg-[#0c0d11] p-1 rounded-xl border border-[#2a2720] text-[11px]">
+            <button
+              onClick={() => setClassFilter('all')}
+              className={`px-2.5 py-1 rounded-lg font-bold transition ${classFilter === 'all' ? 'bg-[#c4a661] text-[#07070a]' : 'text-[#888378] hover:text-[#e2c98a]'}`}
+            >
+              すべて ({CLASSES.length})
+            </button>
+            <button
+              onClick={() => setClassFilter('base')}
+              className={`px-2.5 py-1 rounded-lg font-bold transition ${classFilter === 'base' ? 'bg-[#c4a661] text-[#07070a]' : 'text-[#888378] hover:text-[#e2c98a]'}`}
+            >
+              基本職 (7)
+            </button>
+            <button
+              onClick={() => setClassFilter('reinc1')}
+              className={`px-2.5 py-1 rounded-lg font-bold transition ${classFilter === 'reinc1' ? 'bg-[#c4a661] text-[#07070a]' : 'text-[#888378] hover:text-[#e2c98a]'}`}
+            >
+              転生1世代 (5)
+            </button>
+            <button
+              onClick={() => setClassFilter('reinc2+')}
+              className={`px-2.5 py-1 rounded-lg font-bold transition ${classFilter === 'reinc2+' ? 'bg-[#c4a661] text-[#07070a]' : 'text-[#888378] hover:text-[#e2c98a]'}`}
+            >
+              転生2世代+ (7)
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-h-[380px] overflow-y-auto pr-1">
+          {filteredClasses.map((cls) => {
             const isSelected = selectedClass.id === cls.id;
+            const isLocked = cls.isReincarnationOnly && reincarnationCount < (cls.minReincarnationReq || 1);
+
             return (
               <div
                 key={cls.id}
-                onClick={() => setSelectedClass(cls)}
-                className={`cursor-pointer rounded-xl p-4 transition-all border relative flex flex-col justify-between ${
-                  isSelected
-                    ? 'bg-gradient-to-b from-emerald-900/80 to-slate-900 border-emerald-400 shadow-lg shadow-emerald-950/50 ring-2 ring-emerald-500/50'
-                    : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-900/90'
+                onClick={() => {
+                  if (!isLocked) setSelectedClass(cls);
+                }}
+                className={`rounded-xl p-3.5 transition-all border relative flex flex-col justify-between ${
+                  isLocked
+                    ? 'opacity-50 bg-[#08080a] border-[#1c1a15] cursor-not-allowed grayscale'
+                    : isSelected
+                      ? 'bg-gradient-to-b from-[#1c1810] to-[#101117] border-[#c4a661] shadow-[0_0_15px_rgba(196,166,97,0.25)] ring-1 ring-[#d4af37] cursor-pointer'
+                      : 'bg-[#101117] border-[#25221b] hover:border-[#c4a661]/60 hover:bg-[#151620] cursor-pointer'
                 }`}
               >
-                {isSelected && (
-                  <div className="absolute top-3 right-3 text-emerald-400 bg-emerald-950/80 p-1 rounded-full border border-emerald-500/50">
-                    <Check className="w-4 h-4" />
+                {isSelected && !isLocked && (
+                  <div className="absolute top-2.5 right-2.5 text-[#d4af37] bg-[#1a1710] p-1 rounded-full border border-[#c4a661] shadow">
+                    <Check className="w-3.5 h-3.5" />
+                  </div>
+                )}
+                {cls.isReincarnationOnly && (
+                  <div className="mb-1.5">
+                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${
+                      isLocked
+                        ? 'bg-[#18181f] text-[#777] border-[#2d2d38]'
+                        : 'bg-[#221c10] text-[#e2c98a] border-[#c4a661]/80'
+                    }`}>
+                      {isLocked ? `✦ 転生第${cls.minReincarnationReq}世代で解放` : `✦ 転生第${cls.minReincarnationReq}世代限定職`}
+                    </span>
                   </div>
                 )}
                 <div>
-                  <div className="text-emerald-400 mb-2">{getIconComponent(cls.icon)}</div>
-                  <h3 className="font-bold text-white mb-0.5">{cls.name}</h3>
-                  <span className="inline-block text-[10px] bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded border border-emerald-800/60 mb-2">
-                    {cls.role}
-                  </span>
-                  <p className="text-xs text-slate-400 mb-3 leading-relaxed">{cls.desc}</p>
+                  <div className="text-[#c4a661] mb-1 flex items-center justify-between">
+                    {getIconComponent(cls.icon)}
+                    <span className="text-[10px] bg-[#1a1710] text-[#d4af37] px-2 py-0.5 rounded border border-[#3a3322] font-bold">
+                      {cls.role}
+                    </span>
+                  </div>
+                  <h3 className="font-extrabold text-white text-sm mb-1">{cls.name}</h3>
+                  <p className="text-[11px] text-[#b8b0a0] mb-2 leading-tight">{cls.desc}</p>
                 </div>
-                <div className="grid grid-cols-2 gap-1 text-[11px] bg-slate-950/60 p-2 rounded-lg text-slate-300">
-                  <div>HP: <span className="text-emerald-400 font-bold">{cls.baseStats.hp + selectedRace.bonuses.hp}</span></div>
-                  <div>MP: <span className="text-purple-400 font-bold">{cls.baseStats.mp + selectedRace.bonuses.mp}</span></div>
-                  <div>攻撃: <span className="text-red-400 font-bold">{cls.baseStats.atk + selectedRace.bonuses.atk}</span></div>
-                  <div>防御: <span className="text-blue-400 font-bold">{cls.baseStats.def + selectedRace.bonuses.def}</span></div>
+                <div className="grid grid-cols-2 gap-1 text-[11px] bg-[#08080b] p-1.5 rounded-lg text-[#d1cbbe] border border-[#22201a]">
+                  <div>HP: <span className="text-[#f3e5be] font-bold">{cls.baseStats.hp + selectedRace.bonuses.hp}</span></div>
+                  <div>MP: <span className="text-[#e2c98a] font-bold">{cls.baseStats.mp + selectedRace.bonuses.mp}</span></div>
+                  <div>ATK: <span className="text-[#e5a93c] font-bold">{cls.baseStats.atk + selectedRace.bonuses.atk}</span></div>
+                  <div>DEF: <span className="text-[#b8b09d] font-bold">{cls.baseStats.def + selectedRace.bonuses.def}</span></div>
                 </div>
               </div>
             );
@@ -381,40 +551,89 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({
       </div>
 
       {/* Summary & Start Button */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
+      <div className="bg-[#0e0f14] border border-[#2a2720] rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
         <div>
-          <h4 className="text-sm font-semibold text-slate-400 mb-1">選択された冒険者ステータス</h4>
-          <div className="flex flex-wrap items-center gap-3 text-sm font-medium">
-            <span className="bg-slate-800 px-3 py-1 rounded-lg text-amber-300 border border-slate-700">種族: {selectedRace.name.split(' ')[0]}</span>
-            <span className="bg-slate-800 px-3 py-1 rounded-lg text-purple-300 border border-slate-700">魔法: {selectedMagic.name.split(' ')[0]}</span>
-            <span className="bg-slate-800 px-3 py-1 rounded-lg text-emerald-300 border border-slate-700">役職: {selectedClass.name.split(' ')[0]}</span>
-            <span className="text-slate-400">|</span>
-            <span>初期HP: <strong className="text-emerald-400">{calculatedStats.hp}</strong></span>
-            <span>初期MP: <strong className="text-purple-400">{calculatedStats.mp}</strong></span>
-            <span>攻撃: <strong className="text-red-400">{calculatedStats.atk}</strong></span>
-            <span>防御: <strong className="text-blue-400">{calculatedStats.def}</strong></span>
+          <h4 className="text-xs font-semibold text-[#888378] uppercase tracking-wider mb-2">選択された冒険者ステータス</h4>
+          <div className="flex flex-wrap items-center gap-3 text-xs font-medium">
+            <span className="bg-[#181610] px-3 py-1 rounded-lg text-[#f3e5be] border border-[#3a3322]">種族: {selectedRace.name.split(' ')[0]}</span>
+            <span className="bg-[#181610] px-3 py-1 rounded-lg text-[#f3e5be] border border-[#3a3322]">魔法: {selectedMagic.name.split(' ')[0]}</span>
+            <span className="bg-[#181610] px-3 py-1 rounded-lg text-[#f3e5be] border border-[#3a3322]">役職: {selectedClass.name.split(' ')[0]}</span>
+            <span className="text-[#444]">|</span>
+            <span>初期HP: <strong className="text-[#f3e5be]">{calculatedStats.hp}</strong></span>
+            <span>初期MP: <strong className="text-[#e2c98a]">{calculatedStats.mp}</strong></span>
+            <span>攻撃: <strong className="text-[#e5a93c]">{calculatedStats.atk}</strong></span>
+            <span>防御: <strong className="text-[#b8b09d]">{calculatedStats.def}</strong></span>
           </div>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          <button
+            onClick={() => setShowResetModal(true)}
+            className="px-4 py-4 bg-[#181010] hover:bg-[#251414] border border-[#4a2222] text-[#e57373] font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+            title="セーブデータを完全削除して初期化"
+          >
+            <Trash2 className="w-4 h-4" />
+            データ完全リセット
+          </button>
           {hasSavedGame && onContinueAdventure && (
             <button
               onClick={onContinueAdventure}
-              className="px-6 py-4 bg-indigo-900/80 hover:bg-indigo-800 text-indigo-200 border border-indigo-500/60 font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 transition cursor-pointer"
+              className="px-6 py-4 bg-[#1c1810] hover:bg-[#282218] text-[#f3e5be] border border-[#c4a661] font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 transition cursor-pointer"
             >
-              <Sparkles className="w-5 h-5 text-indigo-300" />
+              <Sparkles className="w-5 h-5 text-[#d4af37]" />
               続きから始める
             </button>
           )}
           <button
             onClick={handleStart}
-            className="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 hover:from-amber-400 hover:to-red-500 text-white font-bold rounded-xl shadow-lg shadow-orange-950/50 flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] active:scale-95 cursor-pointer"
+            className="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-[#b89542] via-[#d4af37] to-[#9e7d33] hover:from-[#d4af37] hover:to-[#b89542] text-[#07070a] font-black rounded-xl shadow-lg shadow-[rgba(196,166,97,0.25)] flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] active:scale-95 cursor-pointer"
           >
             <Play className="w-5 h-5 fill-current" />
             冒険に出発する！
           </button>
         </div>
       </div>
+
+      {/* Hard Reset Confirmation Modal */}
+      {showResetModal && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-[#120808] border-2 border-red-600 max-w-md w-full rounded-3xl p-6 shadow-[0_0_50px_rgba(220,38,38,0.3)] text-slate-100 relative animate-fadeIn">
+            <div className="flex items-center gap-3 text-red-500 mb-3">
+              <div className="w-10 h-10 rounded-2xl bg-red-950/80 border border-red-500/60 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-6 h-6 text-red-500" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-red-400">【警告】全データ完全初期化</h3>
+                <p className="text-xs text-red-300/80">セーブデータの完全削除</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed mb-4">
+              これまでの進行状況、キャラクター、獲得した称号、所持アイテム、および <strong className="text-amber-400">転生・昇華履歴（世代数）</strong> のすべてのセーブデータを完全に削除して最初からやり直しますか？
+            </p>
+
+            <div className="p-3 bg-red-950/40 rounded-xl border border-red-900/60 text-[11px] text-red-300 font-bold mb-6">
+              ※ この操作は取り消せません。完全な初回状態に戻ります。
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowResetModal(false)}
+                className="flex-1 py-3 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 font-bold text-xs rounded-xl transition cursor-pointer"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={handleHardReset}
+                className="flex-1 py-3 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white font-black text-xs rounded-xl shadow-lg border border-red-400/60 flex items-center justify-center gap-1.5 transition cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4 text-white" />
+                完全に初期化する
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

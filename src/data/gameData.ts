@@ -1,6 +1,7 @@
 import { RaceInfo, MagicTypeInfo, ClassInfo, Item, Enemy, FloorNode } from '../types';
 
 export const RACES: RaceInfo[] = [
+  // --- BASE RACES ---
   {
     id: 'human',
     name: '人間 (Human)',
@@ -46,10 +47,29 @@ export const RACES: RaceInfo[] = [
     traitName: '聖なる光輪',
     traitDesc: '毎ターン開始時、最大HPの5%を自動回復する。',
   },
-  // --- 転生 / 昇華解放種族 (NEW REINCARNATION RACES) ---
+  {
+    id: 'samurai_folk',
+    name: '刀客 (Samurai Folk)',
+    desc: '極東の刀道を極めし一族。会心の一撃で敵の息の根を止める。',
+    icon: 'Sword',
+    bonuses: { hp: 70, mp: 20, atk: 15, def: 6, spd: 10, crit: 18 },
+    traitName: '一閃の境地',
+    traitDesc: 'クリティカル率+10%、物理攻撃ダメージ+15%。',
+  },
+  {
+    id: 'beastkin',
+    name: '獣人族 (Beastkin)',
+    desc: '野性味溢れる敏捷な亜人。鋭い野生の勘で敵の打撃を回避する。',
+    icon: 'Zap',
+    bonuses: { hp: 80, mp: 20, atk: 12, def: 8, spd: 18, crit: 12 },
+    traitName: '野生の本能',
+    traitDesc: '素早さ+10、回避率12%上昇。',
+  },
+
+  // --- TIER 1 REINCARNATION RACES (第1世代解禁) ---
   {
     id: 'dragonkin',
-    name: '龍人 (Dragonkin) ✦転生解放',
+    name: '龍人 (Dragonkin) ✦転生1世代',
     desc: '古の神竜の血を宿す最高位の覇者。絶大な体力と威圧的な威力を誇る。',
     icon: 'Flame',
     isReincarnationOnly: true,
@@ -60,7 +80,7 @@ export const RACES: RaceInfo[] = [
   },
   {
     id: 'spirit_king',
-    name: '精霊王 (Spirit King) ✦転生解放',
+    name: '精霊王 (Spirit King) ✦転生1世代',
     desc: '世界樹の精霊を束ねる最高位魔導種族。圧倒的なMPと極大威力の魔法を放つ。',
     icon: 'Sparkles',
     isReincarnationOnly: true,
@@ -71,7 +91,7 @@ export const RACES: RaceInfo[] = [
   },
   {
     id: 'berserker',
-    name: '狂戦士 (Berserker) ✦転生解放',
+    name: '狂戦士 (Berserker) ✦転生1世代',
     desc: '戦場を蹂躙する狂皇。圧倒的な破砕攻撃力で敵を一瞬で屠る。',
     icon: 'Sword',
     isReincarnationOnly: true,
@@ -82,7 +102,7 @@ export const RACES: RaceInfo[] = [
   },
   {
     id: 'celestial',
-    name: '星の神子 (Celestial) ✦転生解放',
+    name: '星の神子 (Celestial) ✦転生1世代',
     desc: '銀河の星光をまとう奇跡の種族。常に強固な星光バリアを身に纏う。',
     icon: 'Sun',
     isReincarnationOnly: true,
@@ -93,7 +113,7 @@ export const RACES: RaceInfo[] = [
   },
   {
     id: 'void_archdemon',
-    name: '虚無の魔神 (Void Archdemon) ✦転生解放',
+    name: '虚無の魔神 (Void Archdemon) ✦転生1世代',
     desc: '深淵の暗黒次元より顕現せし魔神。あらゆる次元を抉る壊滅的呪術を操る。',
     icon: 'Skull',
     isReincarnationOnly: true,
@@ -104,7 +124,7 @@ export const RACES: RaceInfo[] = [
   },
   {
     id: 'vampire_princess',
-    name: '吸血姫 (Vampire Princess) ✦転生解放',
+    name: '吸血姫 (Vampire Princess) ✦転生1世代',
     desc: '夜の静寂を統べる真祖の姫君。与えたダメージの多くを生命力に還元する。',
     icon: 'Crown',
     isReincarnationOnly: true,
@@ -115,7 +135,7 @@ export const RACES: RaceInfo[] = [
   },
   {
     id: 'kitsune',
-    name: '九尾の狐仙 (Nine-Tailed Kitsune) ✦転生解放',
+    name: '九尾の狐仙 (Nine-Tailed Kitsune) ✦転生1世代',
     desc: '千年の霊力を宿す伝説の仙狐。莫大な財宝と経験値を引き寄せる。',
     icon: 'Zap',
     isReincarnationOnly: true,
@@ -126,7 +146,7 @@ export const RACES: RaceInfo[] = [
   },
   {
     id: 'automaton',
-    name: '機工生命体 (Automaton) ✦転生解放',
+    name: '機工生命体 (Automaton) ✦転生1世代',
     desc: '超合金で構築された絶対装甲生命体。あらゆる打撃を無力化する。',
     icon: 'Shield',
     isReincarnationOnly: true,
@@ -134,6 +154,157 @@ export const RACES: RaceInfo[] = [
     bonuses: { hp: 250, mp: 40, atk: 28, def: 35, spd: 8, crit: 10 },
     traitName: 'エーテル要塞装甲',
     traitDesc: '被ダメージを常時30%カット＆ノックバック無効。',
+  },
+  {
+    id: 'phoenix_immortal',
+    name: '鳳凰の不滅種 (Phoenix Immortal) ✦転生1世代',
+    desc: '不死鳥の炎を身体に宿す不滅の血族。倒れても一度だけ完全復活を遂げる。',
+    icon: 'Flame',
+    isReincarnationOnly: true,
+    minReincarnationReq: 1,
+    bonuses: { hp: 160, mp: 120, atk: 28, def: 20, spd: 20, crit: 15 },
+    traitName: '不滅の転生炎',
+    traitDesc: 'HPが0になった際に最大HP100%で一度だけ完全蘇生。',
+  },
+  {
+    id: 'necro_overlord',
+    name: '冥府の死霊王 (Necro Overlord) ✦転生1世代',
+    desc: '死界を支配する骨王。死霊を呼び寄せダメージを分散させる。',
+    icon: 'Skull',
+    isReincarnationOnly: true,
+    minReincarnationReq: 1,
+    bonuses: { hp: 150, mp: 150, atk: 32, def: 22, spd: 14, crit: 16 },
+    traitName: '死霊の防波堤',
+    traitDesc: '被ダメージの20%をMPで肩代わり＆暗黒ダメージ+40%。',
+  },
+
+  // --- TIER 2 REINCARNATION RACES (第2世代解禁) ---
+  {
+    id: 'genesis_dragon',
+    name: '創世龍帝 (Genesis Dragon Emperor) ✦✦転生2世代',
+    desc: '世界創造の龍神の化身。天地を揺るがす絶対的攻撃力と絶大な耐久力を誇る。',
+    icon: 'Crown',
+    isReincarnationOnly: true,
+    minReincarnationReq: 2,
+    bonuses: { hp: 320, mp: 120, atk: 65, def: 45, spd: 18, crit: 25 },
+    traitName: '創世の龍威',
+    traitDesc: '攻撃力・防御力+35%、全属性攻撃の威力+40%。',
+  },
+  {
+    id: 'asura_shura',
+    name: '三面六臂アスラ (Asura Shura) ✦✦転生2世代',
+    desc: '六本の腕で怒涛の連続攻撃を繰り出す阿修羅神。連撃の鬼。',
+    icon: 'Sword',
+    isReincarnationOnly: true,
+    minReincarnationReq: 2,
+    bonuses: { hp: 240, mp: 80, atk: 75, def: 25, spd: 30, crit: 35 },
+    traitName: '阿修羅六連撃',
+    traitDesc: '物理攻撃時に50%の確率で2連撃追撃が発生。',
+  },
+  {
+    id: 'arch_seraph',
+    name: '熾天使大天導 (Arch-Seraph Lord) ✦✦転生2世代',
+    desc: '天界最上位の熾天使。あらゆる悪意を跳ね返す絶対聖界を構築する。',
+    icon: 'Sun',
+    isReincarnationOnly: true,
+    minReincarnationReq: 2,
+    bonuses: { hp: 200, mp: 280, atk: 35, def: 40, spd: 22, crit: 20 },
+    traitName: '絶対聖光陣',
+    traitDesc: '毎ターンHP・MPを15%自動回復＆状態異常完全無効。',
+  },
+  {
+    id: 'titan_colossus',
+    name: '泰山金剛巨神 (Titan Colossus) ✦✦転生2世代',
+    desc: '大地そのものを肉体とする巨神。圧倒的HPと不沈の装甲。',
+    icon: 'Shield',
+    isReincarnationOnly: true,
+    minReincarnationReq: 2,
+    bonuses: { hp: 450, mp: 50, atk: 40, def: 60, spd: 5, crit: 10 },
+    traitName: '不沈の金剛体',
+    traitDesc: '最大HP+50%、被ダメージ40%常時軽減。',
+  },
+  {
+    id: 'fairy_empress',
+    name: '夢幻の妖精皇 (Fairy Empress) ✦✦転生2世代',
+    desc: '妖精郷の覇者。幻想の舞で敵の攻撃を完封し、超速度で翻弄。',
+    icon: 'Sparkles',
+    isReincarnationOnly: true,
+    minReincarnationReq: 2,
+    bonuses: { hp: 150, mp: 250, atk: 25, def: 20, spd: 45, crit: 28 },
+    traitName: '夢幻蜃気楼',
+    traitDesc: '回避率30%、呪術・魔法発動速度最速＆MPコスト70%カット。',
+  },
+
+  // --- TIER 3 REINCARNATION RACES (第3世代解禁) ---
+  {
+    id: 'sun_god_atum',
+    name: '原初太陽神アトゥム (Sun God Atum) ✵転生3世代',
+    desc: '万物の太陽の祖。放つすべての攻撃が灼熱の極大光輝を纏う。',
+    icon: 'Sun',
+    isReincarnationOnly: true,
+    minReincarnationReq: 3,
+    bonuses: { hp: 350, mp: 350, atk: 85, def: 50, spd: 28, crit: 30 },
+    traitName: '太陽神の極光',
+    traitDesc: '全攻撃ダメージ+50%、毎ターン敵全体に灼熱ダメージ。',
+  },
+  {
+    id: 'nine_hydra_king',
+    name: '九頭神龍王 (Nine Hydra King) ✵転生3世代',
+    desc: '九つの頭を持つ伝説の神龍。多重属性の息吹で全てを呑み込む。',
+    icon: 'Crown',
+    isReincarnationOnly: true,
+    minReincarnationReq: 3,
+    bonuses: { hp: 480, mp: 220, atk: 90, def: 55, spd: 20, crit: 28 },
+    traitName: '九頭の咆哮',
+    traitDesc: '全状態異常付与確率+40%、攻撃力+45%。',
+  },
+  {
+    id: 'cosmic_observer',
+    name: '宇宙の観測者 (Cosmic Observer) ✵転生3世代',
+    desc: '星々の運命を観察する超次元存在。因果を改変し確定勝利へ導く。',
+    icon: 'Sparkles',
+    isReincarnationOnly: true,
+    minReincarnationReq: 3,
+    bonuses: { hp: 280, mp: 400, atk: 60, def: 45, spd: 38, crit: 40 },
+    traitName: '因果改変の理',
+    traitDesc: '確定クリティカル率+30%、全魔法威力2倍。',
+  },
+
+  // --- TIER 4 REINCARNATION RACES (第4世代解禁) ---
+  {
+    id: 'dimension_sovereign_race',
+    name: '次元超覇王 (Dimension Sovereign) ☸転生4世代',
+    desc: '全多重次元の覇者。空間を自在に切断し防御という概念を無力化する。',
+    icon: 'Zap',
+    isReincarnationOnly: true,
+    minReincarnationReq: 4,
+    bonuses: { hp: 550, mp: 450, atk: 120, def: 70, spd: 45, crit: 45 },
+    traitName: '次元絶対断裁',
+    traitDesc: '防御無視ダメージ100%、被ダメージ70%カット。',
+  },
+  {
+    id: 'primordial_chaos_race',
+    name: '原初カオス体 (Primordial Entity) ☸転生4世代',
+    desc: '宇宙誕生以前の混沌。あらゆる物理法則や属性を受け付けない。',
+    icon: 'Skull',
+    isReincarnationOnly: true,
+    minReincarnationReq: 4,
+    bonuses: { hp: 600, mp: 500, atk: 110, def: 80, spd: 40, crit: 50 },
+    traitName: '混沌の虚無領域',
+    traitDesc: '全ダメージ+70%、属性耐性全無効化。',
+  },
+
+  // --- TIER 5 REINCARNATION RACES (第5世代極限解禁) ---
+  {
+    id: 'infinite_ascendant_god',
+    name: '無限昇華神 (Infinite Ascendant God) ☯転生5世代',
+    desc: '無限の転生を超克した最高神。存在そのものが世界の理。',
+    icon: 'Crown',
+    isReincarnationOnly: true,
+    minReincarnationReq: 5,
+    bonuses: { hp: 1000, mp: 800, atk: 200, def: 120, spd: 60, crit: 60 },
+    traitName: '無限昇華の全知全能',
+    traitDesc: '全ステータス2倍、経験値・ゴールド獲得量10倍。',
   },
 ];
 
@@ -485,6 +656,7 @@ export const MAGIC_TYPES: MagicTypeInfo[] = [
 ];
 
 export const CLASSES: ClassInfo[] = [
+  // --- BASE CLASSES ---
   {
     id: 'warrior',
     name: '戦士 (Warrior)',
@@ -524,6 +696,152 @@ export const CLASSES: ClassInfo[] = [
     role: 'オールラウンダー',
     baseStats: { hp: 130, mp: 70, atk: 20, def: 14, spd: 10, crit: 10 },
     icon: 'ShieldAlert',
+  },
+  {
+    id: 'archer',
+    name: '弓術士 (Archer)',
+    desc: '遠距離から狙撃し高確率で精密クリティカルを狙う精密射手。',
+    role: '遠距離アタッカー',
+    baseStats: { hp: 115, mp: 60, atk: 22, def: 10, spd: 16, crit: 18 },
+    icon: 'Zap',
+  },
+  {
+    id: 'monk',
+    name: '武闘家 (Monk)',
+    desc: '素手と気合いで連続攻撃を叩き込む近接格闘の達人。',
+    role: '格闘アタッカー',
+    baseStats: { hp: 140, mp: 40, atk: 24, def: 12, spd: 14, crit: 12 },
+    icon: 'Sword',
+  },
+
+  // --- TIER 1 REINCARNATION CLASSES (第1世代解禁) ---
+  {
+    id: 'dragoon_god',
+    name: '龍神騎士 (Dragoon God) ✦転生1世代',
+    desc: '龍脈のパワーを解き放ち絶大な破壊力を誇る最高峰の騎士。',
+    role: '龍脈物理覇者',
+    isReincarnationOnly: true,
+    minReincarnationReq: 1,
+    baseStats: { hp: 220, mp: 80, atk: 45, def: 28, spd: 16, crit: 15 },
+    icon: 'Sword',
+  },
+  {
+    id: 'grand_archmage',
+    name: '賢者・大魔導王 (Grand Archmage) ✦転生1世代',
+    desc: '深遠なる全魔法原理を理解し、消費MPを抑え超威力を実現。',
+    role: '全属性大魔導',
+    isReincarnationOnly: true,
+    minReincarnationReq: 1,
+    baseStats: { hp: 130, mp: 240, atk: 20, def: 15, spd: 18, crit: 16 },
+    icon: 'Wand2',
+  },
+  {
+    id: 'shadow_assassin',
+    name: '影皇・シャドウマスター (Shadow Master) ✦転生1世代',
+    desc: '闇に潜み、致命的な会心一撃と即死級の急所攻撃を叩き込む。',
+    role: '超絶クリティカル',
+    isReincarnationOnly: true,
+    minReincarnationReq: 1,
+    baseStats: { hp: 140, mp: 90, atk: 38, def: 14, spd: 32, crit: 35 },
+    icon: 'Zap',
+  },
+  {
+    id: 'hierophant',
+    name: '聖導師・ハイエロファント (Hierophant) ✦転生1世代',
+    desc: '神聖なる祝福でパーティ全体を護り、完全なる治癒をもたらす。',
+    role: '絶対回復サポーター',
+    isReincarnationOnly: true,
+    minReincarnationReq: 1,
+    baseStats: { hp: 180, mp: 180, atk: 22, def: 25, spd: 14, crit: 10 },
+    icon: 'Heart',
+  },
+  {
+    id: 'destroyer_warlord',
+    name: '破滅の戦鬼 (Destroyer Warlord) ✦転生1世代',
+    desc: '防具すら不要と言わんばかりの超攻撃力で敵を叩き潰す鬼神。',
+    role: '超極大アタッカー',
+    isReincarnationOnly: true,
+    minReincarnationReq: 1,
+    baseStats: { hp: 250, mp: 40, atk: 60, def: 18, spd: 15, crit: 20 },
+    icon: 'Crown',
+  },
+
+  // --- TIER 2 REINCARNATION CLASSES (第2世代解禁) ---
+  {
+    id: 'genesis_paladin',
+    name: '創世のパラディン (Genesis Paladin) ✦✦転生2世代',
+    desc: '聖なる盾と創世の光で一切の攻撃を受け止める不沈の守護神。',
+    role: '無敵神聖タンク',
+    isReincarnationOnly: true,
+    minReincarnationReq: 2,
+    baseStats: { hp: 320, mp: 140, atk: 40, def: 50, spd: 15, crit: 12 },
+    icon: 'Shield',
+  },
+  {
+    id: 'chrono_controller',
+    name: '時空統御者 (Chrono Controller) ✦✦転生2世代',
+    desc: '時間の流れを自在に変え、常時先攻と高速発動を可能にする。',
+    role: '時空統御アタッカー',
+    isReincarnationOnly: true,
+    minReincarnationReq: 2,
+    baseStats: { hp: 180, mp: 260, atk: 35, def: 22, spd: 45, crit: 25 },
+    icon: 'Sparkles',
+  },
+  {
+    id: 'summon_master',
+    name: '召喚神術士 (Summon Master) ✦✦転生2世代',
+    desc: '神域の幻獣・神竜を召喚し異次元の破滅を降らせる術者。',
+    role: '幻獣完全召喚',
+    isReincarnationOnly: true,
+    minReincarnationReq: 2,
+    baseStats: { hp: 170, mp: 300, atk: 30, def: 20, spd: 22, crit: 20 },
+    icon: 'Wand2',
+  },
+
+  // --- TIER 3 REINCARNATION CLASSES (第3世代解禁) ---
+  {
+    id: 'dimension_sovereign_class',
+    name: '次元覇王 (Dimension Sovereign) ✵転生3世代',
+    desc: '次元を自由自在に切断し、敵の装甲や防御を完全に無効化。',
+    role: '防御無視次元覇王',
+    isReincarnationOnly: true,
+    minReincarnationReq: 3,
+    baseStats: { hp: 380, mp: 220, atk: 85, def: 40, spd: 30, crit: 30 },
+    icon: 'Sword',
+  },
+  {
+    id: 'omniscient_sage',
+    name: '全知全能の賢者 (Omniscient Sage) ✵転生3世代',
+    desc: 'あらゆる属性・次元の魔法術式を極めし最高峰の大賢者。',
+    role: '全魔法完全マスター',
+    isReincarnationOnly: true,
+    minReincarnationReq: 3,
+    baseStats: { hp: 280, mp: 450, atk: 45, def: 35, spd: 32, crit: 35 },
+    icon: 'Sparkles',
+  },
+
+  // --- TIER 4 REINCARNATION CLASSES (第4世代解禁) ---
+  {
+    id: 'cosmic_creator_class',
+    name: '宇宙創世主 (Cosmic Creator) ☸転生4世代',
+    desc: '新たな世界を創世する神の力を宿す。放つ攻撃は宇宙レベル。',
+    role: '創世至高アタッカー',
+    isReincarnationOnly: true,
+    minReincarnationReq: 4,
+    baseStats: { hp: 500, mp: 500, atk: 110, def: 60, spd: 38, crit: 40 },
+    icon: 'Crown',
+  },
+
+  // --- TIER 5 REINCARNATION CLASSES (第5世代極限解禁) ---
+  {
+    id: 'omnipotent_reason_class',
+    name: '【極限】全知全能の理 (Omnipotent Reason) ☯転生5世代',
+    desc: '理そのものとなりし絶対存在。圧倒的ステータスで世界を支配。',
+    role: '絶対理覇者',
+    isReincarnationOnly: true,
+    minReincarnationReq: 5,
+    baseStats: { hp: 800, mp: 800, atk: 180, def: 100, spd: 50, crit: 50 },
+    icon: 'Sun',
   },
 ];
 

@@ -702,6 +702,8 @@ https://ai.studio/build
                           const learnedSpell = character.spells.find(s => s.id === spell.id);
                           const isLearned = !!learnedSpell;
                           const plusVal = learnedSpell ? (learnedSpell as any).plusLevel || 0 : 0;
+                          const reqReinc = spell.minReincarnationReq || 0;
+                          const isUnlockedByReinc = (character.reincarnationCount || 0) >= reqReinc;
                           
                           return (
                             <div 
@@ -709,16 +711,27 @@ https://ai.studio/build
                               className={`p-4 rounded-2xl border flex flex-col justify-between transition-all duration-300 ${
                                 isLearned 
                                   ? 'bg-slate-950/90 border-purple-500/25 shadow-md' 
-                                  : 'bg-slate-950/30 border-slate-900/60 opacity-40'
+                                  : isUnlockedByReinc
+                                    ? 'bg-slate-950/60 border-slate-800 opacity-80'
+                                    : 'bg-slate-950/30 border-red-900/30 opacity-40'
                               }`}
                             >
                               <div className="flex justify-between items-start gap-2">
                                 <div>
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-2 flex-wrap">
                                     <span className="font-extrabold text-white text-xs">{spell.name}</span>
                                     {isLearned && (
                                       <span className="px-2 py-0.5 bg-purple-500/10 text-purple-300 text-[8px] rounded font-mono font-bold border border-purple-500/20">
                                         習得済 {plusVal > 0 ? `+${plusVal}` : ''}
+                                      </span>
+                                    )}
+                                    {reqReinc > 0 && (
+                                      <span className={`px-2 py-0.5 text-[8px] rounded font-mono font-bold border ${
+                                        isUnlockedByReinc 
+                                          ? 'bg-amber-500/10 text-amber-300 border-amber-500/30' 
+                                          : 'bg-red-500/10 text-red-400 border-red-500/30'
+                                      }`}>
+                                        {isUnlockedByReinc ? `転生${reqReinc}世代解禁` : `要 転生${reqReinc}世代`}
                                       </span>
                                     )}
                                   </div>

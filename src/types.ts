@@ -1,33 +1,8 @@
-export type RaceId = 
-  | 'human' 
-  | 'elf' 
-  | 'dwarf' 
-  | 'demon' 
-  | 'angel'
-  | 'dragonkin'
-  | 'spirit_king'
-  | 'berserker'
-  | 'celestial'
-  | 'void_archdemon'
-  | 'vampire_princess'
-  | 'kitsune'
-  | 'automaton';
+export type RaceId = string;
 
-export type MagicTypeId = 
-  | 'fire' 
-  | 'ice' 
-  | 'thunder' 
-  | 'holy' 
-  | 'dark'
-  | 'spatial'
-  | 'chrono'
-  | 'draconic'
-  | 'stellar'
-  | 'summoning'
-  | 'gravity'
-  | 'sonic';
+export type MagicTypeId = string;
 
-export type ClassId = 'warrior' | 'mage' | 'thief' | 'cleric' | 'knight';
+export type ClassId = string;
 
 export interface RaceInfo {
   id: RaceId;
@@ -70,6 +45,7 @@ export interface Spell {
   effectType: 'damage' | 'heal' | 'buff' | 'debuff' | 'drain';
   rarity?: 'common' | 'rare' | 'epic' | 'legendary';
   plusLevel?: number;
+  minReincarnationReq?: number;
   statusEffect?: {
     type: 'burn' | 'freeze' | 'paralyze' | 'poison' | 'shield';
     chance: number;
@@ -85,6 +61,8 @@ export interface ClassInfo {
   name: string;
   desc: string;
   role: string;
+  isReincarnationOnly?: boolean;
+  minReincarnationReq?: number;
   baseStats: {
     hp: number;
     mp: number;

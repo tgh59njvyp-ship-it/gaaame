@@ -743,42 +743,42 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
             <div className="space-y-3.5 text-xs">
               <div>
                 <div className="flex justify-between items-center mb-1 font-mono">
-                  <span className="text-slate-400 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                  <span className="text-[#a09a8a] flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#d4af37]" />
                     HP
                   </span>
-                  <span className="text-red-400 font-bold tracking-wide">{charHp} / {totalMaxHp}</span>
+                  <span className="text-[#f3e5be] font-bold tracking-wide">{charHp} / {totalMaxHp}</span>
                 </div>
-                <div className="w-full bg-slate-900/80 rounded-full h-3.5 overflow-hidden border border-slate-800 p-0.5">
+                <div className="w-full bg-[#08080a] rounded-full h-3.5 overflow-hidden border border-[#2a2720] p-0.5">
                   <motion.div 
                     initial={{ width: 0 }}
                     animate={{ width: `${Math.max(0, (charHp / totalMaxHp) * 100)}%` }}
                     transition={{ duration: 0.4, ease: 'easeOut' }}
-                    className="bg-gradient-to-r from-red-600 via-rose-500 to-rose-400 h-full rounded-full"
+                    className="bg-gradient-to-r from-[#9e7d33] via-[#c4a661] to-[#f3e5be] h-full rounded-full"
                   />
                 </div>
               </div>
               <div>
                 <div className="flex justify-between items-center mb-1 font-mono">
-                  <span className="text-slate-400 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                  <span className="text-[#a09a8a] flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#e2c98a]" />
                     MP
                   </span>
-                  <span className="text-purple-400 font-bold tracking-wide">{charMp} / {totalMaxMp}</span>
+                  <span className="text-[#e2c98a] font-bold tracking-wide">{charMp} / {totalMaxMp}</span>
                 </div>
-                <div className="w-full bg-slate-900/80 rounded-full h-3.5 overflow-hidden border border-slate-800 p-0.5">
+                <div className="w-full bg-[#08080a] rounded-full h-3.5 overflow-hidden border border-[#2a2720] p-0.5">
                   <motion.div 
                     initial={{ width: 0 }}
                     animate={{ width: `${Math.max(0, (charMp / totalMaxMp) * 100)}%` }}
                     transition={{ duration: 0.4, ease: 'easeOut' }}
-                    className="bg-gradient-to-r from-indigo-600 via-purple-500 to-fuchsia-400 h-full rounded-full"
+                    className="bg-gradient-to-r from-[#5a4c28] via-[#8c7438] to-[#e2c98a] h-full rounded-full"
                   />
                 </div>
               </div>
             </div>
 
             {isDefending && (
-              <div className="mt-3.5 flex items-center gap-1.5 text-[10px] bg-blue-950/40 text-blue-300 px-2.5 py-1 rounded border border-blue-800/40 font-semibold uppercase tracking-wider">
+              <div className="mt-3.5 flex items-center gap-1.5 text-[10px] bg-[#1a1710] text-[#d4af37] px-2.5 py-1 rounded border border-[#c4a661]/60 font-semibold uppercase tracking-wider">
                 <Shield className="w-3.5 h-3.5" />
                 <span>防御体制中 / DEFENSE ENGAGED</span>
               </div>
@@ -787,27 +787,27 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
 
           {/* Right Wing: Enemy Card */}
           <motion.div 
-            animate={!isPlayerTurn && !isBattleOver ? { boxShadow: '0 0 25px rgba(225,29,72,0.1)' } : {}}
+            animate={!isPlayerTurn && !isBattleOver ? { boxShadow: '0 0 25px rgba(196,166,97,0.15)' } : {}}
             className={`p-5 rounded-2xl border transition-all duration-500 ${
               !isPlayerTurn && !isBattleOver
-                ? 'bg-[#1b1517] border-rose-900/60' 
-                : 'bg-slate-950/45 border-[#232329]/60'
+                ? 'bg-[#181512] border-[#c4a661]/80' 
+                : 'bg-[#0a0a0d]/80 border-[#23201a]'
             }`}
           >
             <div className="flex items-center justify-between mb-4 gap-3">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-bold text-rose-100 text-base truncate">{enemy.name}</h3>
-                  <span className="text-[10px] font-bold text-rose-400 bg-rose-950/30 px-2 py-0.5 rounded border border-rose-800/40 font-mono shrink-0">
+                  <h3 className="font-bold text-[#f3e5be] text-base truncate">{enemy.name}</h3>
+                  <span className="text-[10px] font-bold text-[#d4af37] bg-[#1a1710] px-2 py-0.5 rounded border border-[#3a3322] font-mono shrink-0">
                     Lv.{enemy.level}
                   </span>
                 </div>
-                <span className="text-[10px] text-slate-500 block mt-0.5 font-mono">ENCOUNTER</span>
+                <span className="text-[10px] text-[#706c62] block mt-0.5 font-mono">ENCOUNTER</span>
               </div>
-              <div className="w-12 h-12 rounded-full bg-[#201518] border border-rose-800/30 flex items-center justify-center shadow-inner relative overflow-hidden shrink-0">
-                <Skull className="w-5 h-5 text-rose-500" />
+              <div className="w-12 h-12 rounded-full bg-[#181510] border border-[#c4a661]/40 flex items-center justify-center shadow-inner relative overflow-hidden shrink-0">
+                <Skull className="w-5 h-5 text-[#d4af37]" />
                 {!isPlayerTurn && !isBattleOver && (
-                  <span className="absolute inset-0 bg-rose-500/10 animate-ping rounded-full pointer-events-none" />
+                  <span className="absolute inset-0 bg-[#c4a661]/10 animate-ping rounded-full pointer-events-none" />
                 )}
               </div>
             </div>
@@ -815,24 +815,24 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
             {/* Enemy HP Gauge */}
             <div className="text-xs">
               <div className="flex justify-between items-center mb-1 font-mono">
-                <span className="text-slate-400 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                <span className="text-[#a09a8a] flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#d4af37]" />
                   ENEMY HP
                 </span>
-                <span className="text-orange-400 font-bold tracking-wide">{enemyHp} / {enemyMaxHp}</span>
+                <span className="text-[#e2c98a] font-bold tracking-wide">{enemyHp} / {enemyMaxHp}</span>
               </div>
-              <div className="w-full bg-slate-900/80 rounded-full h-3.5 overflow-hidden border border-slate-800 p-0.5">
+              <div className="w-full bg-[#08080a] rounded-full h-3.5 overflow-hidden border border-[#2a2720] p-0.5">
                 <motion.div 
                   initial={{ width: 0 }}
                   animate={{ width: `${Math.max(0, (enemyHp / enemyMaxHp) * 100)}%` }}
                   transition={{ duration: 0.4, ease: 'easeOut' }}
-                  className="bg-gradient-to-r from-orange-600 to-amber-500 h-full rounded-full"
+                  className="bg-gradient-to-r from-[#735e2e] via-[#b89542] to-[#d4af37] h-full rounded-full"
                 />
               </div>
             </div>
 
             {enemyStatus && (
-              <div className="mt-3.5 flex items-center gap-1.5 text-[10px] bg-purple-950/40 text-purple-300 px-2.5 py-1 rounded border border-purple-800/40 font-semibold tracking-wider">
+              <div className="mt-3.5 flex items-center gap-1.5 text-[10px] bg-[#1a1710] text-[#e2c98a] px-2.5 py-1 rounded border border-[#3a3322] font-semibold tracking-wider">
                 <ShieldAlert className="w-3.5 h-3.5 animate-pulse" />
                 <span>{enemyStatus.type.toUpperCase()} 状態 (残り{enemyStatus.duration}T)</span>
               </div>
@@ -842,18 +842,18 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
 
         {/* Cinematic Aether Gauge Controller */}
         {!isBattleOver && (
-          <div className="mb-6 bg-slate-950/80 p-4 rounded-2xl border border-[#232329] relative z-10 overflow-hidden">
+          <div className="mb-6 bg-[#0c0d11] p-4 rounded-2xl border border-[#2a2720] relative z-10 overflow-hidden">
             <div className="flex justify-between items-center mb-1.5 text-xs">
               <span className="text-[#c4a661] font-bold flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
+                <Sparkles className="w-4 h-4 text-[#d4af37] animate-pulse" />
                 エーテルバーストゲージ / AETHER RESONANCE
               </span>
-              <span className="font-mono text-amber-400 font-bold tracking-widest">{aetherGauge}%</span>
+              <span className="font-mono text-[#d4af37] font-bold tracking-widest">{aetherGauge}%</span>
             </div>
-            <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden border border-slate-800 p-0.5">
+            <div className="w-full bg-[#07070a] h-2 rounded-full overflow-hidden border border-[#2a2720] p-0.5">
               <motion.div 
                 animate={{ width: `${aetherGauge}%` }}
-                className={`h-full rounded-full transition-all duration-300 ${isAetherBurstActive ? 'bg-gradient-to-r from-red-500 via-amber-400 to-yellow-300 animate-pulse shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-[#c4a661]'}`}
+                className={`h-full rounded-full transition-all duration-300 ${isAetherBurstActive ? 'bg-gradient-to-r from-[#b89542] via-[#d4af37] to-[#f3e5be] animate-pulse shadow-[0_0_10px_rgba(212,175,55,0.5)]' : 'bg-[#c4a661]'}`}
               />
             </div>
 
@@ -863,14 +863,14 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                 whileHover={{ scale: 1.015 }}
                 whileTap={{ scale: 0.985 }}
                 onClick={handleActivateBurst}
-                className="w-full mt-3 py-3 bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-400 text-slate-950 text-xs font-black tracking-[0.15em] rounded-xl hover:shadow-[0_0_20px_rgba(245,158,11,0.5)] transition duration-300 cursor-pointer animate-pulse border border-white/20"
+                className="w-full mt-3 py-3 bg-gradient-to-r from-[#b89542] via-[#d4af37] to-[#f3e5be] text-[#07070a] text-xs font-black tracking-[0.15em] rounded-xl hover:shadow-[0_0_20px_rgba(212,175,55,0.5)] transition duration-300 cursor-pointer animate-pulse border border-white/20"
               >
                 🔥 次元覚醒 【AETHER BURST】 を発動する！ 🔥
               </motion.button>
             )}
             
             {isAetherBurstActive && (
-              <div className="w-full mt-2 text-center text-[10px] text-amber-400 font-mono tracking-[0.2em] animate-pulse font-bold">
+              <div className="w-full mt-2 text-center text-[10px] text-[#d4af37] font-mono tracking-[0.2em] animate-pulse font-bold">
                 BURST ACTIVE: 残り {burstTurnsLeft} ターン 
               </div>
             )}
@@ -887,13 +887,11 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
               onClick={handleAttack}
               className={`py-3 px-4 rounded-xl font-bold flex flex-col items-center justify-center gap-1 border transition-all duration-300 ${
                 isPlayerTurn
-                  ? isAetherBurstActive
-                    ? 'bg-gradient-to-br from-red-600 via-orange-500 to-amber-500 text-white border-white animate-pulse shadow-lg cursor-pointer'
-                    : 'bg-red-950/80 hover:bg-red-900 text-red-200 border-red-800/80 shadow-lg cursor-pointer'
-                  : 'bg-slate-950/20 text-slate-600 border-slate-900/60 cursor-not-allowed'
+                  ? 'bg-[#1c1810] hover:bg-[#282218] text-[#d4af37] border-[#c4a661] shadow-lg cursor-pointer'
+                  : 'bg-[#09090c] text-[#555] border-[#1c1a15] cursor-not-allowed'
               }`}
             >
-              <Swords className={`w-4 h-4 mb-0.5 ${isPlayerTurn ? 'text-red-400' : ''}`} />
+              <Swords className={`w-4 h-4 mb-0.5 ${isPlayerTurn ? 'text-[#d4af37]' : ''}`} />
               <span className="text-xs">{isAetherBurstActive ? '神撃エーテルノヴァ' : '通常攻撃'}</span>
             </motion.button>
 
@@ -905,12 +903,12 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
               className={`py-3 px-4 rounded-xl font-bold flex flex-col items-center justify-center gap-1 border transition-all duration-300 ${
                 isPlayerTurn
                   ? showSpellMenu
-                    ? 'bg-purple-900 text-purple-100 border-purple-500 shadow-lg cursor-pointer'
-                    : 'bg-purple-950/80 hover:bg-purple-900 text-purple-200 border-purple-800/80 shadow-lg cursor-pointer'
-                  : 'bg-slate-950/20 text-slate-600 border-slate-900/60 cursor-not-allowed'
+                    ? 'bg-[#2a2416] text-[#f3e5be] border-[#d4af37] shadow-lg cursor-pointer'
+                    : 'bg-[#1c1810] hover:bg-[#282218] text-[#f3e5be] border-[#c4a661]/80 shadow-lg cursor-pointer'
+                  : 'bg-[#09090c] text-[#555] border-[#1c1a15] cursor-not-allowed'
               }`}
             >
-              <Wand2 className={`w-4 h-4 mb-0.5 ${isPlayerTurn ? 'text-purple-400' : ''}`} />
+              <Wand2 className={`w-4 h-4 mb-0.5 ${isPlayerTurn ? 'text-[#e2c98a]' : ''}`} />
               <span className="text-xs">魔法を使う</span>
             </motion.button>
 
@@ -922,12 +920,12 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
               className={`py-3 px-4 rounded-xl font-bold flex flex-col items-center justify-center gap-1 border transition-all duration-300 ${
                 isPlayerTurn
                   ? showItemMenu
-                    ? 'bg-emerald-900 text-emerald-100 border-emerald-500 shadow-lg cursor-pointer'
-                    : 'bg-emerald-950/80 hover:bg-emerald-900 text-emerald-200 border-emerald-800/80 shadow-lg cursor-pointer'
-                  : 'bg-slate-950/20 text-slate-600 border-slate-900/60 cursor-not-allowed'
+                    ? 'bg-[#2a2416] text-[#f3e5be] border-[#d4af37] shadow-lg cursor-pointer'
+                    : 'bg-[#1c1810] hover:bg-[#282218] text-[#e2c98a] border-[#c4a661]/80 shadow-lg cursor-pointer'
+                  : 'bg-[#09090c] text-[#555] border-[#1c1a15] cursor-not-allowed'
               }`}
             >
-              <Backpack className={`w-4 h-4 mb-0.5 ${isPlayerTurn ? 'text-emerald-400' : ''}`} />
+              <Backpack className={`w-4 h-4 mb-0.5 ${isPlayerTurn ? 'text-[#c4a661]' : ''}`} />
               <span className="text-xs">アイテム</span>
             </motion.button>
 
@@ -938,11 +936,11 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
               onClick={handleDefend}
               className={`py-3 px-4 rounded-xl font-bold flex flex-col items-center justify-center gap-1 border transition-all duration-300 ${
                 isPlayerTurn
-                  ? 'bg-blue-950/80 hover:bg-blue-900 text-blue-200 border-blue-800/80 shadow-lg cursor-pointer'
-                  : 'bg-slate-950/20 text-slate-600 border-slate-900/60 cursor-not-allowed'
+                  ? 'bg-[#121318] hover:bg-[#1a1b22] text-[#b8b0a0] border-[#3a3528] shadow-lg cursor-pointer'
+                  : 'bg-[#09090c] text-[#555] border-[#1c1a15] cursor-not-allowed'
               }`}
             >
-              <Shield className={`w-4 h-4 mb-0.5 ${isPlayerTurn ? 'text-blue-400' : ''}`} />
+              <Shield className={`w-4 h-4 mb-0.5 ${isPlayerTurn ? 'text-[#b8b0a0]' : ''}`} />
               <span className="text-xs">防御する</span>
             </motion.button>
           </div>

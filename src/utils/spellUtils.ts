@@ -473,13 +473,18 @@ export function checkAndUnlockLevelUpSpells(character: CharacterState, level: nu
   return { updatedChar: character, unlockedSpells: [] };
 }
 
+export function getAvailablePullableSpells(reincarnationCount: number = 0): Spell[] {
+  return ALL_PULLABLE_SPELLS.filter(s => (s.minReincarnationReq || 0) <= reincarnationCount);
+}
+
 /**
  * Rolls magic gacha pulls.
  * Rarities: Common, Rare, Epic, Legendary
- * Higher reincarnation levels boost Legendary & Epic drop rates!
+ * Higher reincarnation levels boost Legendary & Epic drop rates and unlock higher tier reincarnation spells!
  */
 export function rollMagicGacha(count: number, playerLevel: number, reincarnationCount: number = 0): Spell[] {
   const results: Spell[] = [];
+  const availablePool = getAvailablePullableSpells(reincarnationCount);
   
   // Reincarnation bonuses boost legendary rate by +4% per reincarnation
   const baseLegendaryChance = 0.05 + Math.min(0.35, reincarnationCount * 0.04);
@@ -500,10 +505,10 @@ export function rollMagicGacha(count: number, playerLevel: number, reincarnation
       targetRarity = 'common';
     }
     
-    // Filter spells matching that rarity
-    let pool = ALL_PULLABLE_SPELLS.filter(s => s.rarity === targetRarity);
+    // Filter spells matching that rarity from the available reincarnation pool
+    let pool = availablePool.filter(s => s.rarity === targetRarity);
     if (pool.length === 0) {
-      pool = ALL_PULLABLE_SPELLS;
+      pool = availablePool;
     }
     
     // Pick random spell and clone it
