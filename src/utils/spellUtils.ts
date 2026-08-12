@@ -1,4 +1,5 @@
 import { Spell, CharacterState } from '../types';
+import { MASSIVE_SPELL_LIST } from '../data/massiveSpellList';
 
 // Standard level-up spells per MagicType Element
 export const ELEMENTAL_SPELLS: Record<string, { level: number; spell: Spell }[]> = {
@@ -432,8 +433,9 @@ export const GACHA_EXCLUSIVE_SPELLS: Spell[] = [
   }
 ];
 
-// Combine standard and exclusive spells for random rolls in Magic Gacha
+// Combine standard, exclusive, and massive 200+ spell database for random rolls in Magic Gacha
 export const ALL_PULLABLE_SPELLS: Spell[] = [
+  ...MASSIVE_SPELL_LIST,
   ...GACHA_EXCLUSIVE_SPELLS,
   ...ELEMENTAL_SPELLS.fire.map(entry => entry.spell),
   ...ELEMENTAL_SPELLS.ice.map(entry => entry.spell),
@@ -473,20 +475,26 @@ export function checkAndUnlockLevelUpSpells(character: CharacterState, level: nu
 
 /**
  * Rolls magic gacha pulls.
- * Rarities: Common (50%), Rare (30%), Epic (15%), Legendary (5%)
+ * Rarities: Common, Rare, Epic, Legendary
+ * Higher reincarnation levels boost Legendary & Epic drop rates!
  */
-export function rollMagicGacha(count: number, playerLevel: number): Spell[] {
+export function rollMagicGacha(count: number, playerLevel: number, reincarnationCount: number = 0): Spell[] {
   const results: Spell[] = [];
   
+  // Reincarnation bonuses boost legendary rate by +4% per reincarnation
+  const baseLegendaryChance = 0.05 + Math.min(0.35, reincarnationCount * 0.04);
+  const baseEpicChance = 0.20 + Math.min(0.30, reincarnationCount * 0.03);
+  const baseRareChance = 0.50;
+
   for (let i = 0; i < count; i++) {
     const roll = Math.random();
     let targetRarity: 'common' | 'rare' | 'epic' | 'legendary' = 'common';
     
-    if (roll < 0.05) {
+    if (roll < baseLegendaryChance) {
       targetRarity = 'legendary';
-    } else if (roll < 0.20) {
+    } else if (roll < baseEpicChance) {
       targetRarity = 'epic';
-    } else if (roll < 0.50) {
+    } else if (roll < baseRareChance) {
       targetRarity = 'rare';
     } else {
       targetRarity = 'common';
@@ -502,8 +510,8 @@ export function rollMagicGacha(count: number, playerLevel: number): Spell[] {
     const baseSpell = pool[Math.floor(Math.random() * pool.length)];
     const spellClone: Spell = {
       ...baseSpell,
-      // Enhance power slightly if player level is very high
-      power: Math.floor(baseSpell.power * (1 + (playerLevel - 1) * 0.02))
+      // Enhance power slightly if player level or reincarnation count is high
+      power: Math.floor(baseSpell.power * (1 + (playerLevel - 1) * 0.02 + reincarnationCount * 0.05))
     };
     
     results.push(spellClone);

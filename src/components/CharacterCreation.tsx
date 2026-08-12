@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { RACES, MAGIC_TYPES, CLASSES } from '../data/gameData';
 import { RaceInfo, MagicTypeInfo, ClassInfo, CharacterState } from '../types';
 import { getInitialQuests } from '../utils/rankUtils';
+import { MASSIVE_SPELL_LIST } from '../data/massiveSpellList';
 import { Sword, Wand2, Shield, Flame, Sparkles, Sun, Zap, Heart, ShieldAlert, User, Check, Play, Crown, Skull } from 'lucide-react';
 
 
@@ -74,6 +75,30 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({
 
   const handleStart = () => {
     if (!heroName.trim()) return;
+
+    // Base starter spells
+    const startingSpells = [...selectedMagic.spells];
+
+    // Reincarnation Bonus Spells (Unlocks extra spells for higher reincarnation levels)
+    if (reincarnationCount >= 1) {
+      const arcana1 = MASSIVE_SPELL_LIST.find(s => s.id === 'arc_01');
+      if (arcana1 && !startingSpells.some(s => s.id === arcana1.id)) {
+        startingSpells.push(arcana1);
+      }
+    }
+    if (reincarnationCount >= 2) {
+      const arcana2 = MASSIVE_SPELL_LIST.find(s => s.id === 'arc_04');
+      if (arcana2 && !startingSpells.some(s => s.id === arcana2.id)) {
+        startingSpells.push(arcana2);
+      }
+    }
+    if (reincarnationCount >= 3) {
+      const arcana3 = MASSIVE_SPELL_LIST.find(s => s.id === 'arc_07');
+      if (arcana3 && !startingSpells.some(s => s.id === arcana3.id)) {
+        startingSpells.push(arcana3);
+      }
+    }
+
     const newChar: CharacterState = {
       name: heroName.trim(),
       race: selectedRace,
@@ -90,8 +115,8 @@ export const CharacterCreation: React.FC<CharacterCreationProps> = ({
       def: calculatedStats.def,
       spd: calculatedStats.spd,
       crit: calculatedStats.crit,
-      gold: 150 + reincarnationCount * 200,
-      spells: selectedMagic.spells,
+      gold: 150 + reincarnationCount * 250,
+      spells: startingSpells,
       inventory: [
         { id: 'potion_1', name: '小ポーション', type: 'potion', rarity: 'common', effect: { type: 'healHp', value: 50 }, desc: 'HPを50回復する。', price: 30, icon: 'FlaskConical' },
         { id: 'potion_2', name: '小ポーション', type: 'potion', rarity: 'common', effect: { type: 'healHp', value: 50 }, desc: 'HPを50回復する。', price: 30, icon: 'FlaskConical' },

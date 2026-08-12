@@ -49,11 +49,22 @@ export default function App() {
       if (saved) {
         setHasSaveData(true);
         const parsed = JSON.parse(saved);
-        if (parsed.character?.reincarnationCount) {
-          setReincarnationMeta({
-            count: parsed.character.reincarnationCount,
-            buffs: parsed.character.reincarnationBuffs,
-          });
+        const loadedChar = parsed.character;
+        if (loadedChar) {
+          if (loadedChar.sp === undefined) loadedChar.sp = 0;
+          if (!loadedChar.unlockedSkills) loadedChar.unlockedSkills = [];
+          setCharacter(loadedChar);
+          setCurrentStage(parsed.currentStage || 1);
+          setFloors(parsed.floors || []);
+          setPhase(parsed.phase || 'hub');
+          setHubTab('dungeon');
+          
+          if (loadedChar.reincarnationCount) {
+            setReincarnationMeta({
+              count: loadedChar.reincarnationCount,
+              buffs: loadedChar.reincarnationBuffs,
+            });
+          }
         }
       }
       const reincSaved = localStorage.getItem('astral_rogue_reinc_v1');

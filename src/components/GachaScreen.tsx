@@ -24,6 +24,7 @@ export const GachaScreen: React.FC<GachaScreenProps> = ({ character, onUpdateCha
   const [hasLegendaryInPull, setHasLegendaryInPull] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
   const [showSpellbook, setShowSpellbook] = useState<boolean>(false);
+  const [spellSearchQuery, setSpellSearchQuery] = useState<string>('');
 
   const SINGLE_COST = activeTab === 'magic' ? 400 : activeTab === 'staff' ? 350 : 300;
   const TEN_COST = activeTab === 'magic' ? 3600 : activeTab === 'staff' ? 3200 : 2800;
@@ -137,7 +138,7 @@ export const GachaScreen: React.FC<GachaScreenProps> = ({ character, onUpdateCha
         setPullResults({ items });
 
       } else {
-        const spells = rollMagicGacha(count, character.level);
+        const spells = rollMagicGacha(count, character.level, character.reincarnationCount || 0);
         const playerSpells = [...updatedChar.spells];
         
         spells.forEach(spell => {
@@ -660,15 +661,33 @@ https://ai.studio/build
                   <div className="text-xl font-black text-purple-400 mt-1">{character.spells.length} / {ALL_PULLABLE_SPELLS.length} 種</div>
                 </div>
                 <div className="p-4 bg-slate-950/60 rounded-2xl border border-slate-900 text-center">
-                  <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider font-mono">ガチャ限定究極魔法</div>
-                  <div className="text-xl font-black text-amber-400 mt-1">{GACHA_EXCLUSIVE_SPELLS.length} 種</div>
+                  <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider font-mono">ガチャ限定秘奥義魔法</div>
+                  <div className="text-xl font-black text-amber-400 mt-1">{ALL_PULLABLE_SPELLS.filter(s => s.desc.includes('限定') || s.desc.includes('✦')).length} 種</div>
                 </div>
+              </div>
+
+              {/* Search Bar */}
+              <div className="pt-2">
+                <input
+                  type="text"
+                  value={spellSearchQuery}
+                  onChange={(e) => setSpellSearchQuery(e.target.value)}
+                  placeholder="魔法名・説明・属性（火炎・時空・龍・召喚・重力等）で検索..."
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-purple-500/80 font-medium placeholder:text-slate-600"
+                />
               </div>
 
               {/* Spells list categorized by rarity */}
               <div className="space-y-6 pt-2">
                 {['legendary', 'epic', 'rare', 'common'].map(rarity => {
-                  const spellsOfRarity = ALL_PULLABLE_SPELLS.filter(s => s.rarity === rarity);
+                  const spellsOfRarity = ALL_PULLABLE_SPELLS.filter(s => {
+                    const matchesRarity = s.rarity === rarity;
+                    if (!matchesRarity) return false;
+                    if (!spellSearchQuery.trim()) return true;
+                    const q = spellSearchQuery.toLowerCase();
+                    return s.name.toLowerCase().includes(q) || s.desc.toLowerCase().includes(q);
+                  });
+
                   if (spellsOfRarity.length === 0) return null;
                   const style = getRarityStyle(rarity as any);
                   
@@ -676,9 +695,9 @@ https://ai.studio/build
                     <div key={rarity} className="space-y-2.5">
                       <h4 className={`text-xs font-black tracking-[0.2em] uppercase flex items-center gap-2 ${style.text}`}>
                         <span className="w-1.5 h-1.5 rounded-full bg-current animate-ping"></span>
-                        {rarity.toUpperCase()} SPELLS
+                        {rarity.toUpperCase()} SPELLS ({spellsOfRarity.length}件)
                       </h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[500px] overflow-y-auto pr-1 custom-scrollbar">
                         {spellsOfRarity.map(spell => {
                           const learnedSpell = character.spells.find(s => s.id === spell.id);
                           const isLearned = !!learnedSpell;
