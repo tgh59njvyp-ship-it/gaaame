@@ -1534,267 +1534,361 @@ https://ai.studio/build
         </div>
       )}
 
-      {/* Item Detail Modal Overlay */}
-      {selectedItemDetail && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-backdropFadeIn">
-          <div className={`bg-[#0c0d12] border-2 max-w-md w-full rounded-3xl p-6 shadow-2xl relative text-slate-100 animate-modalExpand ${getRarityBadgeStyle(selectedItemDetail.item.rarity)}`}>
-            
-            {/* Modal Header */}
-            <div className="flex justify-between items-start mb-4 pb-3 border-b border-white/10">
-              <div>
-                <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-amber-400 block mb-1">
-                  🔍 ITEM SPECIFICATIONS & STATS
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-black uppercase px-2 py-0.5 rounded bg-black/60 border border-white/10 font-mono">
-                    [{selectedItemDetail.item.rarity.toUpperCase()}]
-                  </span>
-                  <span className="text-xs font-bold text-slate-300 bg-white/5 px-2 py-0.5 rounded border border-white/10">
-                    {selectedItemDetail.item.type === 'weapon' ? '⚔️ 武器' :
-                     selectedItemDetail.item.type === 'armor' ? '🛡️ 防具' :
-                     selectedItemDetail.item.type === 'accessory' ? '💍 アクセサリー' :
-                     selectedItemDetail.item.type === 'potion' ? '🧪 消耗ポーション' : '📜 秘伝書'}
-                  </span>
-                </div>
-              </div>
-              <button
-                onClick={() => setSelectedItemDetail(null)}
-                className="p-2 bg-slate-900/80 hover:bg-slate-800 border border-white/10 rounded-xl transition cursor-pointer"
-              >
-                <X className="w-4 h-4 text-slate-400" />
-              </button>
-            </div>
+      {/* Item Detail & Side-by-Side Equipment Comparison Modal Overlay */}
+      {selectedItemDetail && (() => {
+        const item = selectedItemDetail.item;
+        const isEquippable = item.type === 'weapon' || item.type === 'armor' || item.type === 'accessory';
+        const slotType = (selectedItemDetail.equipType || item.type) as 'weapon' | 'armor' | 'accessory';
+        const slotLabel = slotType === 'weapon' ? '武器枠' : slotType === 'armor' ? '防具枠' : 'アクセサリー枠';
+        
+        const equippedInSlot = character.equipment[slotType];
+        const isAlreadyEquipped = selectedItemDetail.isEquipped;
 
-            {/* Item Icon & Name */}
-            <div className="flex items-center gap-4 mb-5 p-3.5 bg-black/40 rounded-2xl border border-white/10">
-              <div className="w-14 h-14 rounded-2xl bg-slate-950 border border-white/20 flex items-center justify-center shrink-0 shadow-lg">
-                {selectedItemDetail.item.type === 'weapon' ? <Sword className="w-7 h-7 text-red-400" /> :
-                 selectedItemDetail.item.type === 'armor' ? <Shield className="w-7 h-7 text-blue-400" /> :
-                 selectedItemDetail.item.type === 'accessory' ? <Sparkles className="w-7 h-7 text-purple-400" /> :
-                 <Zap className="w-7 h-7 text-emerald-400" />}
-              </div>
-              <div>
-                <h3 className="text-lg font-black text-white tracking-wide">{selectedItemDetail.item.name}</h3>
-                {selectedItemDetail.isEquipped && (
-                  <span className="inline-block mt-1 text-[10px] font-black bg-emerald-950 text-emerald-300 border border-emerald-700/80 px-2 py-0.5 rounded-md font-mono">
-                    ✓ 現在装備中
+        // Current item stats in slot
+        const curAtk = equippedInSlot?.stats?.atk || 0;
+        const curDef = equippedInSlot?.stats?.def || 0;
+        const curHp = equippedInSlot?.stats?.hp || 0;
+        const curMp = equippedInSlot?.stats?.mp || 0;
+        const curSpd = equippedInSlot?.stats?.spd || 0;
+        const curCrit = equippedInSlot?.stats?.crit || 0;
+
+        // Candidate item stats
+        const candidateAtk = isAlreadyEquipped ? 0 : (item.stats?.atk || 0);
+        const candidateDef = isAlreadyEquipped ? 0 : (item.stats?.def || 0);
+        const candidateHp = isAlreadyEquipped ? 0 : (item.stats?.hp || 0);
+        const candidateMp = isAlreadyEquipped ? 0 : (item.stats?.mp || 0);
+        const candidateSpd = isAlreadyEquipped ? 0 : (item.stats?.spd || 0);
+        const candidateCrit = isAlreadyEquipped ? 0 : (item.stats?.crit || 0);
+
+        // Stat diffs from replacing current with candidate
+        const diffAtk = candidateAtk - curAtk;
+        const diffDef = candidateDef - curDef;
+        const diffHp = candidateHp - curHp;
+        const diffMp = candidateMp - curMp;
+        const diffSpd = candidateSpd - curSpd;
+        const diffCrit = candidateCrit - curCrit;
+
+        // Simulated total character stats
+        const simTotalAtk = totalAtk + diffAtk;
+        const simTotalDef = totalDef + diffDef;
+        const simTotalHp = totalMaxHp + diffHp;
+        const simTotalMp = totalMaxMp + diffMp;
+        const simTotalSpd = character.spd + diffSpd;
+        const simTotalCrit = Math.min(100, Math.max(0, totalCrit + diffCrit));
+
+        // Simulated character state for Combat Power diff
+        const simEquipment = {
+          ...character.equipment,
+          [slotType]: isAlreadyEquipped ? null : item
+        };
+        const simCharacter: CharacterState = {
+          ...character,
+          equipment: simEquipment
+        };
+
+        const currentCP = combatPower;
+        const simCP = calculateCombatPower(simCharacter);
+        const cpDiff = simCP - currentCP;
+
+        const comparisonStats = [
+          { key: 'atk', label: '⚔️ 攻撃力', curTotal: totalAtk, simTotal: simTotalAtk, diff: diffAtk, unit: '' },
+          { key: 'def', label: '🛡️ 防御力', curTotal: totalDef, simTotal: simTotalDef, diff: diffDef, unit: '' },
+          { key: 'hp', label: '❤️ 最大HP', curTotal: totalMaxHp, simTotal: simTotalHp, diff: diffHp, unit: '' },
+          { key: 'mp', label: '✨ 最大MP', curTotal: totalMaxMp, simTotal: simTotalMp, diff: diffMp, unit: '' },
+          { key: 'spd', label: '⚡ 素早さ', curTotal: character.spd, simTotal: simTotalSpd, diff: diffSpd, unit: '' },
+          { key: 'crit', label: '🎯 会心率', curTotal: totalCrit, simTotal: simTotalCrit, diff: diffCrit, unit: '%' },
+        ].filter(s => s.curTotal !== 0 || s.simTotal !== 0 || s.diff !== 0);
+
+        return (
+          <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-backdropFadeIn">
+            <div className={`bg-[#0c0d12] border-2 ${
+              isEquippable ? 'max-w-2xl' : 'max-w-md'
+            } w-full rounded-3xl p-5 sm:p-6 shadow-2xl relative text-slate-100 animate-modalExpand ${getRarityBadgeStyle(item.rarity)}`}>
+              
+              {/* Modal Header */}
+              <div className="flex justify-between items-start mb-4 pb-3 border-b border-white/10">
+                <div>
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-amber-400 block mb-1">
+                    {isEquippable ? '📊 EQUIPMENT SIDE-BY-SIDE COMPARISON' : '🔍 ITEM SPECIFICATIONS & EFFECTS'}
                   </span>
-                )}
-              </div>
-            </div>
-
-            {/* Comparison or Specs Breakdown */}
-            {!selectedItemDetail.isEquipped && (selectedItemDetail.item.type === 'weapon' || selectedItemDetail.item.type === 'armor' || selectedItemDetail.item.type === 'accessory') ? (() => {
-              const comp = getEquipmentComparison(selectedItemDetail.item);
-              if (!comp) return null;
-
-              return (
-                <div className="bg-[#12131a] p-4 rounded-2xl border border-[#2d2d38] mb-4 space-y-3">
-                  {/* Header */}
-                  <div className="flex items-center justify-between text-xs font-mono pb-2 border-b border-white/10">
-                    <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
-                      📊 装備ステータス比較 (EQUIPMENT COMPARISON)
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black uppercase px-2 py-0.5 rounded bg-black/60 border border-white/10 font-mono">
+                      [{item.rarity.toUpperCase()}]
+                    </span>
+                    <span className="text-xs font-bold text-slate-300 bg-white/5 px-2 py-0.5 rounded border border-white/10">
+                      {item.type === 'weapon' ? '⚔️ 武器' :
+                       item.type === 'armor' ? '🛡️ 防具' :
+                       item.type === 'accessory' ? '💍 アクセサリー' :
+                       item.type === 'potion' ? '🧪 消耗ポーション' : '📜 秘伝書'}
                     </span>
                   </div>
+                </div>
+                <button
+                  onClick={() => setSelectedItemDetail(null)}
+                  className="p-2 bg-slate-900/80 hover:bg-slate-800 border border-white/10 rounded-xl transition cursor-pointer"
+                >
+                  <X className="w-4 h-4 text-slate-400" />
+                </button>
+              </div>
 
-                  {/* Item Names Side-by-Side */}
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    {/* Currently Equipped */}
-                    <div className="p-2.5 bg-slate-900/90 rounded-xl border border-slate-700/60">
-                      <span className="text-[10px] font-bold text-slate-400 block mb-0.5">現在装備中:</span>
-                      <div className="font-bold text-slate-200 truncate flex items-center gap-1.5">
-                        {comp.equippedItem ? (
-                          <>
-                            <span className="text-xs">{comp.equippedItem.type === 'weapon' ? '⚔️' : comp.equippedItem.type === 'armor' ? '🛡️' : '💍'}</span>
-                            <span className="truncate">{comp.equippedItem.name}</span>
-                          </>
+              {/* Side-by-Side Equipment Cards (For Equippable items) */}
+              {isEquippable ? (
+                <div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                    {/* Left Card: 現在装着中 (Currently Equipped) */}
+                    <div className={`p-3.5 rounded-2xl border flex flex-col justify-between ${
+                      equippedInSlot ? 'bg-[#121218] border-slate-700/80' : 'bg-[#0e0e12] border-dashed border-slate-800'
+                    }`}>
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                            🛡️ 現在装着中
+                          </span>
+                          <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-slate-800/80 text-slate-400 border border-slate-700">
+                            {slotLabel}
+                          </span>
+                        </div>
+
+                        {equippedInSlot ? (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2.5">
+                              <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${getRarityBadgeStyle(equippedInSlot.rarity)}`}>
+                                {equippedInSlot.type === 'weapon' ? <Sword className="w-5 h-5 text-red-400" /> :
+                                 equippedInSlot.type === 'armor' ? <Shield className="w-5 h-5 text-blue-400" /> :
+                                 <Sparkles className="w-5 h-5 text-purple-400" />}
+                              </div>
+                              <div className="min-w-0">
+                                <span className="text-[10px] font-mono font-bold uppercase block text-slate-400">
+                                  [{equippedInSlot.rarity.toUpperCase()}]
+                                </span>
+                                <h4 className="text-xs font-bold text-white truncate">{equippedInSlot.name}</h4>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-1 text-[11px] font-mono pt-2 border-t border-slate-800">
+                              {equippedInSlot.stats?.atk !== undefined && (
+                                <span className="text-slate-300">⚔️ ATK: <strong className="text-rose-400">+{equippedInSlot.stats.atk}</strong></span>
+                              )}
+                              {equippedInSlot.stats?.def !== undefined && (
+                                <span className="text-slate-300">🛡️ DEF: <strong className="text-blue-400">+{equippedInSlot.stats.def}</strong></span>
+                              )}
+                              {equippedInSlot.stats?.hp !== undefined && (
+                                <span className="text-slate-300">❤️ HP: <strong className="text-emerald-400">+{equippedInSlot.stats.hp}</strong></span>
+                              )}
+                              {equippedInSlot.stats?.mp !== undefined && (
+                                <span className="text-slate-300">✨ MP: <strong className="text-purple-400">+{equippedInSlot.stats.mp}</strong></span>
+                              )}
+                              {equippedInSlot.stats?.spd !== undefined && (
+                                <span className="text-slate-300">⚡ SPD: <strong className="text-amber-400">+{equippedInSlot.stats.spd}</strong></span>
+                              )}
+                              {equippedInSlot.stats?.crit !== undefined && (
+                                <span className="text-slate-300">🎯 CRIT: <strong className="text-yellow-400">+{equippedInSlot.stats.crit}%</strong></span>
+                              )}
+                            </div>
+                          </div>
                         ) : (
-                          <span className="text-slate-500 italic">（なし）</span>
+                          <div className="py-6 text-center">
+                            <span className="text-xs text-slate-500 font-mono">（未装着）</span>
+                          </div>
                         )}
                       </div>
                     </div>
 
-                    {/* Candidate Item */}
-                    <div className="p-2.5 bg-amber-950/40 rounded-xl border border-amber-500/50">
-                      <span className="text-[10px] font-bold text-amber-400 block mb-0.5">装備候補:</span>
-                      <div className="font-bold text-amber-200 truncate flex items-center gap-1.5">
-                        <span className="text-xs">{selectedItemDetail.item.type === 'weapon' ? '⚔️' : selectedItemDetail.item.type === 'armor' ? '🛡️' : '💍'}</span>
-                        <span className="truncate">{selectedItemDetail.item.name}</span>
+                    {/* Right Card: 選択中アイテム (Selected Candidate) */}
+                    <div className={`p-3.5 rounded-2xl border flex flex-col justify-between ${
+                      isAlreadyEquipped
+                        ? 'bg-gradient-to-b from-amber-950/40 to-[#121218] border-amber-500/70 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+                        : 'bg-gradient-to-b from-[#181a24] to-[#121218] border-amber-500/60 shadow-lg'
+                    }`}>
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[10px] font-mono font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                            ✨ 選択中アイテム
+                          </span>
+                          {isAlreadyEquipped ? (
+                            <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-600/80 flex items-center gap-1">
+                              <Check className="w-2.5 h-2.5" /> 装備中
+                            </span>
+                          ) : (
+                            <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-600/60">
+                              換装候補
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2.5">
+                            <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${getRarityBadgeStyle(item.rarity)}`}>
+                              {item.type === 'weapon' ? <Sword className="w-5 h-5 text-red-400" /> :
+                               item.type === 'armor' ? <Shield className="w-5 h-5 text-blue-400" /> :
+                               <Sparkles className="w-5 h-5 text-purple-400" />}
+                            </div>
+                            <div className="min-w-0">
+                              <span className="text-[10px] font-mono font-bold uppercase block text-amber-400">
+                                [{item.rarity.toUpperCase()}]
+                              </span>
+                              <h4 className="text-xs font-bold text-amber-200 truncate">{item.name}</h4>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-1 text-[11px] font-mono pt-2 border-t border-slate-800">
+                            {item.stats?.atk !== undefined && (
+                              <span className="text-slate-300">⚔️ ATK: <strong className="text-rose-400">+{item.stats.atk}</strong></span>
+                            )}
+                            {item.stats?.def !== undefined && (
+                              <span className="text-slate-300">🛡️ DEF: <strong className="text-blue-400">+{item.stats.def}</strong></span>
+                            )}
+                            {item.stats?.hp !== undefined && (
+                              <span className="text-slate-300">❤️ HP: <strong className="text-emerald-400">+{item.stats.hp}</strong></span>
+                            )}
+                            {item.stats?.mp !== undefined && (
+                              <span className="text-slate-300">✨ MP: <strong className="text-purple-400">+{item.stats.mp}</strong></span>
+                            )}
+                            {item.stats?.spd !== undefined && (
+                              <span className="text-slate-300">⚡ SPD: <strong className="text-amber-400">+{item.stats.spd}</strong></span>
+                            )}
+                            {item.stats?.crit !== undefined && (
+                              <span className="text-slate-300">🎯 CRIT: <strong className="text-yellow-400">+{item.stats.crit}%</strong></span>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Stat Rows Comparison */}
-                  <div className="space-y-1.5">
-                    {comp.stats.length > 0 ? (
-                      comp.stats.map(s => (
-                        <div 
+                  {/* Overall Stat Changes & Combat Power Preview */}
+                  <div className="bg-[#101117] p-3.5 rounded-2xl border border-[#272835] mb-4 space-y-2.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-2">
+                      <span className="text-[10px] font-mono font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <ArrowUpDown className="w-3.5 h-3.5 text-amber-400" />
+                        <span>総合ステータス増減比較</span>
+                      </span>
+
+                      {/* Combat Power Diff Badge */}
+                      <div className="flex items-center gap-1 text-xs font-mono font-extrabold bg-slate-900/90 border border-amber-500/40 px-2.5 py-1 rounded-xl">
+                        <span className="text-amber-400">🔥 戦闘力:</span>
+                        <span className="text-slate-300">{currentCP.toLocaleString()}</span>
+                        <span className="text-slate-500 text-[10px]">➔</span>
+                        <span className={cpDiff > 0 ? 'text-emerald-400 font-extrabold' : cpDiff < 0 ? 'text-rose-400 font-extrabold' : 'text-slate-200'}>
+                          {simCP.toLocaleString()}
+                        </span>
+                        <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
+                          cpDiff > 0 ? 'bg-emerald-950 text-emerald-300 border border-emerald-600' :
+                          cpDiff < 0 ? 'bg-rose-950 text-rose-300 border border-rose-600' :
+                          'bg-slate-800 text-slate-400'
+                        }`}>
+                          {cpDiff > 0 ? `+${cpDiff} ▲` : cpDiff < 0 ? `${cpDiff} ▼` : '±0'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs font-mono">
+                      {comparisonStats.map(s => (
+                        <div
                           key={s.key}
-                          className={`p-2.5 rounded-xl border flex items-center justify-between text-xs transition-all ${
-                            s.diff > 0 
-                              ? 'bg-emerald-950/40 border-emerald-500/60 text-emerald-200 shadow-[0_2px_10px_rgba(16,185,129,0.15)]' 
-                              : s.diff < 0 
-                                ? 'bg-rose-950/40 border-rose-500/60 text-rose-200 shadow-[0_2px_10px_rgba(244,63,94,0.15)]' 
-                                : 'bg-slate-900/60 border-slate-800 text-slate-300'
+                          className={`px-3 py-1.5 rounded-xl border flex items-center justify-between transition-all ${
+                            s.diff > 0 ? 'bg-emerald-950/30 border-emerald-600/40 text-emerald-200' :
+                            s.diff < 0 ? 'bg-rose-950/30 border-rose-600/40 text-rose-200' :
+                            'bg-slate-900/40 border-slate-800 text-slate-400'
                           }`}
                         >
-                          {/* Stat label */}
-                          <span className="font-bold shrink-0 text-slate-300 min-w-[70px]">{s.label}</span>
-
-                          {/* Current -> Candidate flow */}
-                          <div className="flex items-center gap-2 font-mono">
-                            <span className="text-slate-400 text-xs">
-                              {s.cur !== 0 ? `+${s.cur}${s.unit}` : '0'}
+                          <span className="font-bold text-slate-300">{s.label}</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-slate-400 text-xs">{s.curTotal}{s.unit}</span>
+                            <span className="text-slate-600 text-[9px]">➔</span>
+                            <span className={`font-bold ${s.diff > 0 ? 'text-emerald-400' : s.diff < 0 ? 'text-rose-400' : 'text-slate-300'}`}>
+                              {s.simTotal}{s.unit}
                             </span>
-                            <span className="text-slate-500 text-[10px]">➔</span>
-                            <span className={`font-black text-sm ${
-                              s.diff > 0 ? 'text-emerald-400 font-extrabold' :
-                              s.diff < 0 ? 'text-rose-400 font-extrabold' :
-                              'text-slate-200'
+                            <span className={`text-[10px] font-black px-1.5 py-0.5 rounded border ${
+                              s.diff > 0 ? 'bg-emerald-900/90 text-emerald-300 border-emerald-500/80' :
+                              s.diff < 0 ? 'bg-rose-900/90 text-rose-300 border-rose-500/80' :
+                              'bg-slate-800 text-slate-500 border-slate-700'
                             }`}>
-                              {s.candidate !== 0 ? `+${s.candidate}${s.unit}` : '0'}
+                              {s.diff > 0 ? `+${s.diff}${s.unit} ▲` : s.diff < 0 ? `${s.diff}${s.unit} ▼` : '±0'}
                             </span>
                           </div>
-
-                          {/* Difference Badge: Green for higher candidate, Red for lower candidate */}
-                          <span className={`px-2.5 py-1 rounded-lg font-mono font-black text-xs shrink-0 border flex items-center gap-1 shadow-sm ${
-                            s.diff > 0 
-                              ? 'bg-emerald-900/90 border-emerald-400 text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.4)]' 
-                              : s.diff < 0 
-                                ? 'bg-rose-900/90 border-rose-400 text-rose-300 shadow-[0_0_10px_rgba(244,63,94,0.4)]' 
-                                : 'bg-slate-800 border-slate-700 text-slate-400'
-                          }`}>
-                            {s.diff > 0 ? (
-                              <>
-                                <span>+{s.diff}{s.unit}</span>
-                                <span className="text-[10px]">▲</span>
-                              </>
-                            ) : s.diff < 0 ? (
-                              <>
-                                <span>{s.diff}{s.unit}</span>
-                                <span className="text-[10px]">▼</span>
-                              </>
-                            ) : (
-                              <span>±0</span>
-                            )}
-                          </span>
                         </div>
-                      ))
-                    ) : (
-                      <div className="p-3 bg-slate-900/50 rounded-xl border border-slate-800 text-center text-slate-400 text-xs">
-                        ステータス変化なし
-                      </div>
-                    )}
+                      ))}
+                    </div>
                   </div>
                 </div>
-              );
-            })() : (
-              /* Single Specs Breakdown for Equipped items / Consumables */
-              <div className="bg-[#12131a] p-4 rounded-2xl border border-[#2d2d30] mb-4 space-y-2 text-xs">
-                <span className="text-[10px] font-bold text-slate-400 uppercase font-mono block mb-1">性能・ステータス補正:</span>
-                
-                {selectedItemDetail.item.stats && (
-                  <div className="grid grid-cols-2 gap-2">
-                    {selectedItemDetail.item.stats.atk !== undefined && (
-                      <div className="p-2 bg-rose-950/30 rounded-xl border border-rose-900/40 flex justify-between items-center">
-                        <span className="text-rose-300 font-bold">⚔️ 攻撃力:</span>
-                        <strong className="text-rose-400 font-mono text-sm">+{selectedItemDetail.item.stats.atk}</strong>
-                      </div>
-                    )}
-                    {selectedItemDetail.item.stats.def !== undefined && (
-                      <div className="p-2 bg-blue-950/30 rounded-xl border border-blue-900/40 flex justify-between items-center">
-                        <span className="text-blue-300 font-bold">🛡️ 防御力:</span>
-                        <strong className="text-blue-400 font-mono text-sm">+{selectedItemDetail.item.stats.def}</strong>
-                      </div>
-                    )}
-                    {selectedItemDetail.item.stats.hp !== undefined && (
-                      <div className="p-2 bg-emerald-950/30 rounded-xl border border-emerald-900/40 flex justify-between items-center">
-                        <span className="text-emerald-300 font-bold">❤️ 最大HP:</span>
-                        <strong className="text-emerald-400 font-mono text-sm">+{selectedItemDetail.item.stats.hp}</strong>
-                      </div>
-                    )}
-                    {selectedItemDetail.item.stats.mp !== undefined && (
-                      <div className="p-2 bg-purple-950/30 rounded-xl border border-purple-900/40 flex justify-between items-center">
-                        <span className="text-purple-300 font-bold">✨ 最大MP:</span>
-                        <strong className="text-purple-400 font-mono text-sm">+{selectedItemDetail.item.stats.mp}</strong>
-                      </div>
-                    )}
-                    {selectedItemDetail.item.stats.spd !== undefined && (
-                      <div className="p-2 bg-amber-950/30 rounded-xl border border-amber-900/40 flex justify-between items-center">
-                        <span className="text-amber-300 font-bold">⚡ 素早さ:</span>
-                        <strong className="text-amber-400 font-mono text-sm">+{selectedItemDetail.item.stats.spd}</strong>
-                      </div>
-                    )}
-                    {selectedItemDetail.item.stats.crit !== undefined && (
-                      <div className="p-2 bg-yellow-950/30 rounded-xl border border-yellow-900/40 flex justify-between items-center">
-                        <span className="text-yellow-300 font-bold">🎯 会心率:</span>
-                        <strong className="text-yellow-400 font-mono text-sm">+{selectedItemDetail.item.stats.crit}%</strong>
-                      </div>
-                    )}
+              ) : (
+                /* Non-Equippable Items (Potions / Scrolls) */
+                <div className="space-y-4 mb-4">
+                  <div className="flex items-center gap-4 p-3.5 bg-black/40 rounded-2xl border border-white/10">
+                    <div className="w-14 h-14 rounded-2xl bg-slate-950 border border-white/20 flex items-center justify-center shrink-0 shadow-lg">
+                      <Zap className="w-7 h-7 text-emerald-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black text-white tracking-wide">{item.name}</h3>
+                      <span className="text-xs font-mono text-emerald-400 font-bold block mt-0.5">
+                        {item.type === 'potion' ? '🧪 消耗ポーション' : '📜 秘伝書 / 魔導書'}
+                      </span>
+                    </div>
                   </div>
-                )}
 
-                {selectedItemDetail.item.effect && (
-                  <div className="p-2.5 bg-emerald-950/30 rounded-xl border border-emerald-800/50 text-emerald-300 font-bold flex items-center justify-between">
-                    <span>🧪 使用効果:</span>
-                    <span className="font-mono text-sm">
-                      {selectedItemDetail.item.effect.type === 'healHp' ? `HP ${selectedItemDetail.item.effect.value} 回復` :
-                       selectedItemDetail.item.effect.type === 'healMp' ? `MP ${selectedItemDetail.item.effect.value} 回復` :
-                       `ステータス +${selectedItemDetail.item.effect.value} 恒久強化`}
-                    </span>
-                  </div>
-                )}
+                  {item.effect && (
+                    <div className="p-3 bg-emerald-950/30 rounded-xl border border-emerald-800/50 text-emerald-300 font-bold flex items-center justify-between text-xs">
+                      <span>🧪 使用効果:</span>
+                      <span className="font-mono text-sm">
+                        {item.effect.type === 'healHp' ? `HP ${item.effect.value} 回復` :
+                         item.effect.type === 'healMp' ? `MP ${item.effect.value} 回復` :
+                         `ステータス +${item.effect.value} 恒久強化`}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Description */}
+              <div className="bg-black/40 p-3.5 rounded-xl border border-white/5 text-xs text-slate-300 leading-relaxed mb-5">
+                {item.desc}
               </div>
-            )}
 
-            {/* Description */}
-            <div className="bg-black/40 p-3.5 rounded-xl border border-white/5 text-xs text-slate-300 leading-relaxed mb-6">
-              {selectedItemDetail.item.desc}
+              {/* Action Buttons */}
+              <div className="space-y-2">
+                {!isAlreadyEquipped && isEquippable && (
+                  <button
+                    onClick={() => handleEquipItemDirectly(item, selectedItemDetail.invIndex)}
+                    className="w-full py-3.5 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-950/50 flex items-center justify-center gap-2 transition transform hover:scale-102 cursor-pointer"
+                  >
+                    <Sword className="w-4 h-4 fill-current" />
+                    <span>この装備に換装する（ステータス反映）</span>
+                  </button>
+                )}
+
+                {isAlreadyEquipped && (
+                  <button
+                    onClick={() => handleUnequipItemDirectly(slotType)}
+                    className="w-full py-3.5 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white font-black text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 transition cursor-pointer"
+                  >
+                    <Shield className="w-4 h-4" />
+                    <span>装備を外してバッグに戻す</span>
+                  </button>
+                )}
+
+                {(item.type === 'potion' || item.type === 'scroll') && (
+                  <button
+                    onClick={() => handleUseItemFromDetail(item, selectedItemDetail.invIndex)}
+                    className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 transition cursor-pointer"
+                  >
+                    <Zap className="w-4 h-4" />
+                    <span>使用する</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => setSelectedItemDetail(null)}
+                  className="w-full py-3 bg-[#181820] hover:bg-[#252530] border border-[#3a3528] text-slate-300 font-bold text-xs rounded-xl transition cursor-pointer"
+                >
+                  閉じる
+                </button>
+              </div>
+
             </div>
-
-            {/* Action Buttons */}
-            <div className="space-y-2">
-              {!selectedItemDetail.isEquipped && (selectedItemDetail.item.type === 'weapon' || selectedItemDetail.item.type === 'armor' || selectedItemDetail.item.type === 'accessory') && (
-                <button
-                  onClick={() => handleEquipItemDirectly(selectedItemDetail.item, selectedItemDetail.invIndex)}
-                  className="w-full py-3.5 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-950/50 flex items-center justify-center gap-2 transition transform hover:scale-102 cursor-pointer"
-                >
-                  <Sword className="w-4 h-4 fill-current" />
-                  <span>装備する（ステータスに直ちに反映）</span>
-                </button>
-              )}
-
-              {selectedItemDetail.isEquipped && (
-                <button
-                  onClick={() => handleUnequipItemDirectly(selectedItemDetail.equipType || (selectedItemDetail.item.type as any))}
-                  className="w-full py-3.5 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white font-black text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 transition cursor-pointer"
-                >
-                  <Shield className="w-4 h-4" />
-                  <span>装備を外してバッグに戻す</span>
-                </button>
-              )}
-
-              {(selectedItemDetail.item.type === 'potion' || selectedItemDetail.item.type === 'scroll') && (
-                <button
-                  onClick={() => handleUseItemFromDetail(selectedItemDetail.item, selectedItemDetail.invIndex)}
-                  className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 transition cursor-pointer"
-                >
-                  <Zap className="w-4 h-4" />
-                  <span>使用する</span>
-                </button>
-              )}
-
-              <button
-                onClick={() => setSelectedItemDetail(null)}
-                className="w-full py-3 bg-[#181820] hover:bg-[#252530] border border-[#3a3528] text-slate-300 font-bold text-xs rounded-xl transition cursor-pointer"
-              >
-                閉じる
-              </button>
-            </div>
-
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };
