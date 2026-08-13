@@ -22,7 +22,7 @@ export const VictoryScreen: React.FC<VictoryScreenProps> = ({ character, isVicto
         <p className="text-slate-300 text-sm mb-6">
           {isVictory
             ? 'おめでとうございます！あなたは魔王を打ち倒し、世界に平和をもたらした伝説の冒険者となりました！'
-            : '激しい戦いの末、力尽きてしまいました……。あなたの冒険はここで幕を閉じます。'}
+            : '激しい戦いの末、力尽きてしまいましたが… 神秘の加護により拠点へ生還しました。装備やアイテムはすべて保持されています！'}
         </p>
 
         {/* Stats Summary */}
@@ -50,7 +50,7 @@ export const VictoryScreen: React.FC<VictoryScreenProps> = ({ character, isVicto
           className="px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 mx-auto transition transform hover:scale-105 cursor-pointer"
         >
           <RotateCcw className="w-5 h-5" />
-          タイトルに戻る（再挑戦）
+          {isVictory ? 'タイトルに戻る（再挑戦）' : '🛡️ 拠点に安全に生還する (装備・アイテム保持)'}
         </button>
       </div>
     </div>

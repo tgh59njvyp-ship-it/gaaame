@@ -403,7 +403,22 @@ export default function App() {
 
   const handleBattleDefeat = () => {
     setPhase('gameover');
-    clearSaveData();
+    if (character) {
+      const revivedChar = {
+        ...character,
+        hp: Math.floor(character.maxHp * 0.5),
+        mp: Math.floor(character.maxMp * 0.5),
+      };
+      const defeatLog = createLogEntry(
+        'battle',
+        '戦闘敗北・生還',
+        '強敵との戦いに敗れ力尽きましたが、神秘の加護により拠点へ生還しました。装備やアイテムはすべて保持されています。',
+        currentStage
+      );
+      const updatedWithLog = appendLogToCharacter(revivedChar, defeatLog);
+      setCharacter(updatedWithLog);
+      saveGameToStorage(updatedWithLog, currentStage, floors, 'hub');
+    }
   };
 
   const handleShopFinish = (updatedChar: CharacterState) => {
@@ -599,7 +614,14 @@ export default function App() {
           <VictoryScreen
             character={character}
             isVictory={phase === 'victory'}
-            onRestart={() => setPhase('creation')}
+            onRestart={() => {
+              if (phase === 'gameover') {
+                setPhase('hub');
+                showNotification('🛡️ 拠点に戻りました。装備やアイテムはすべて保持されています！');
+              } else {
+                setPhase('creation');
+              }
+            }}
           />
         )}
       </main>
