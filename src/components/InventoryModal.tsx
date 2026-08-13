@@ -268,11 +268,7 @@ export const InventoryModal: React.FC<InventoryModalProps> = ({
     });
     setTimeout(() => setSkillFeedback(null), 3500);
 
-    setSelectedItemDetail({
-      item: itemToEquip,
-      isEquipped: true,
-      equipType: itemToEquip.type as 'weapon' | 'armor' | 'accessory',
-    });
+    setSelectedItemDetail(null);
   };
 
   const handleUnequipItemDirectly = (type: 'weapon' | 'armor' | 'accessory') => {
@@ -1966,10 +1962,16 @@ https://ai.studio/build
         ].filter(s => s.curTotal !== 0 || s.simTotal !== 0 || s.diff !== 0);
 
         return (
-          <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-backdropFadeIn">
-            <div className={`bg-[#0c0d12] border-2 ${
-              isEquippable ? 'max-w-2xl' : 'max-w-md'
-            } w-full rounded-3xl p-5 sm:p-6 shadow-2xl relative text-slate-100 animate-modalExpand ${getRarityBadgeStyle(item.rarity)}`}>
+          <div 
+            className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-backdropFadeIn"
+            onClick={() => setSelectedItemDetail(null)}
+          >
+            <div 
+              className={`bg-[#0c0d12] border-2 ${
+                isEquippable ? 'max-w-2xl' : 'max-w-md'
+              } w-full rounded-3xl p-5 sm:p-6 shadow-2xl relative text-slate-100 animate-modalExpand ${getRarityBadgeStyle(item.rarity)}`}
+              onClick={(e) => e.stopPropagation()}
+            >
               
               {/* Modal Header */}
               <div className="flex justify-between items-start mb-4 pb-3 border-b border-white/10">
