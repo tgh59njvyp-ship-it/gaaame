@@ -414,23 +414,54 @@ export const GachaScreen: React.FC<GachaScreenProps> = ({ character, onUpdateCha
         </div>
       )}
 
-      {/* BANNER DESCRIPTION */}
+      {/* BANNER DESCRIPTION & RATES */}
       {!isPulling && !pullResults && (
-        <div className="p-5 bg-[#0e1017] rounded-2xl border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center gap-4 relative overflow-hidden">
-          <div className="p-4 rounded-2xl bg-amber-950/50 text-amber-400 border border-amber-500/40">
-            {activeTab === 'event' ? <Trophy className="w-7 h-7 animate-bounce" /> : <Sparkles className="w-7 h-7" />}
+        <div className="space-y-3">
+          <div className="p-5 bg-[#0e1017] rounded-2xl border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center gap-4 relative overflow-hidden">
+            <div className="p-4 rounded-2xl bg-amber-950/50 text-amber-400 border border-amber-500/40 shrink-0">
+              {activeTab === 'event' ? <Trophy className="w-7 h-7 animate-bounce" /> : <Sparkles className="w-7 h-7" />}
+            </div>
+            <div className="flex-1">
+              <h3 className="font-extrabold text-white text-sm mb-1">
+                {activeTab === 'event' 
+                  ? '🏆 【1ヶ月限定アニバーサリーガチャ】 創世の星辰降臨！'
+                  : activeTab === 'weapon' ? '⚔️ 武器召喚：火力の具現化' : activeTab === 'armor' ? '🛡️ 防具召喚：絶対防衛のイージス' : activeTab === 'staff' ? '🔮 魔杖召喚：魔力増幅スタック' : '📖 古代魔導契約：マスター・スペル習得'}
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                {activeTab === 'event'
+                  ? '1ヶ月限定の特別ピックアップ！「【限定】星辰の創滅剣」「【限定】創世のアカシックドレス」などの超絶最高峰レジェンド武具が18%の高確率で排出されます！さらに10連で創世の星屑トークン付き！'
+                  : '1回 300 ジェム / 10連 3,000 ジェムで召喚！(10連ガチャチケットも消費可能)'}
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-extrabold text-white text-sm mb-1">
-              {activeTab === 'event' 
-                ? '🏆 【1ヶ月限定アニバーサリーガチャ】 創世の星辰降臨！'
-                : activeTab === 'weapon' ? '⚔️ 武器召喚：火力の具現化' : activeTab === 'armor' ? '🛡️ 防具召喚：絶対防衛のイージス' : activeTab === 'staff' ? '🔮 魔杖召喚：魔力増幅スタック' : '📖 古代魔導契約：マスター・スペル習得'}
-            </h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              {activeTab === 'event'
-                ? '1ヶ月限定の特別ピックアップ！「【限定】星辰の創滅剣」「【限定】創世のアカシックドレス」などの超絶最高峰レジェンド武具が18%の高確率で排出されます！さらに10連で創世の星屑トークン付き！'
-                : '1回 300 ジェム / 10連 3,000 ジェムで召喚！(10連ガチャチケットも消費可能)'}
-            </p>
+
+          {/* Probability Ratios Table / Card */}
+          <div className="p-4 bg-slate-950/80 border border-amber-500/30 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2 text-amber-300 font-bold font-mono">
+              <HelpCircle className="w-4 h-4 text-amber-400" />
+              <span>📊 提供割合 (排出確率):</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 font-mono text-[11px]">
+              {activeTab === 'event' ? (
+                <>
+                  <span className="px-2 py-1 bg-amber-500/20 text-amber-300 rounded border border-amber-500/40 font-bold">レジェンド (Legendary): 18.0%</span>
+                  <span className="px-2 py-1 bg-purple-500/20 text-purple-300 rounded border border-purple-500/30">エピック (Epic): 32.0%</span>
+                  <span className="px-2 py-1 bg-blue-500/20 text-blue-300 rounded border border-blue-500/30">レア (Rare): 50.0%</span>
+                </>
+              ) : activeTab === 'magic' ? (
+                <>
+                  <span className="px-2 py-1 bg-rose-500/20 text-rose-300 rounded border border-rose-500/40 font-bold">創世・神話級 (Divine/Mythic): 5.0%</span>
+                  <span className="px-2 py-1 bg-amber-500/20 text-amber-300 rounded border border-amber-500/40">レジェンド (Legendary): 20.0%</span>
+                  <span className="px-2 py-1 bg-purple-500/20 text-purple-300 rounded border border-purple-500/30">エピック (Epic): 75.0%</span>
+                </>
+              ) : (
+                <>
+                  <span className="px-2 py-1 bg-amber-500/20 text-amber-300 rounded border border-amber-500/40 font-bold">レジェンド (Legendary): 10.0%</span>
+                  <span className="px-2 py-1 bg-purple-500/20 text-purple-300 rounded border border-purple-500/30">エピック (Epic): 30.0%</span>
+                  <span className="px-2 py-1 bg-blue-500/20 text-blue-300 rounded border border-blue-500/30">レア (Rare): 60.0%</span>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}

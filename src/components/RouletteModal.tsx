@@ -98,7 +98,10 @@ export const RouletteModal: React.FC<RouletteModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-50 flex items-center justify-center p-4 animate-backdropFadeIn">
+    <div 
+      className="fixed inset-0 bg-black/90 backdrop-blur-xl z-50 flex items-center justify-center p-4 animate-backdropFadeIn"
+      onClick={onClose}
+    >
       
       {/* Spectacular celebratory background rays */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-500/20 via-purple-900/10 to-transparent pointer-events-none animate-pulse" />
@@ -107,7 +110,8 @@ export const RouletteModal: React.FC<RouletteModalProps> = ({
         initial={{ scale: 0.85, opacity: 0, y: 30 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-        className="bg-gradient-to-b from-[#12131c] via-[#0b0c10] to-[#07080a] border-2 border-amber-400/90 max-w-lg w-full rounded-3xl p-6 sm:p-8 shadow-[0_0_80px_rgba(245,158,11,0.45)] text-white relative overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+        className="bg-gradient-to-b from-[#12131c] via-[#0b0c10] to-[#07080a] border-2 border-amber-400/90 max-w-lg w-full rounded-3xl p-6 sm:p-8 shadow-[0_0_80px_rgba(245,158,11,0.45)] text-white relative overflow-hidden pointer-events-auto"
       >
         
         {/* Floating sparkles and particles */}
