@@ -291,6 +291,7 @@ export default function App() {
 
   const handleUpdateCharacter = (updated: CharacterState) => {
     const finalChar = updateCharacterWithTitleCheck(updated);
+    setCharacter(finalChar);
     saveGameToStorage(finalChar, currentStage, floors, phase);
   };
 
