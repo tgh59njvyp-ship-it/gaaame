@@ -6,7 +6,7 @@ export const createLogEntry = (
   description: string,
   stageNumber?: number,
   details?: {
-    rarity?: 'common' | 'rare' | 'epic' | 'legendary';
+    rarity?: 'common' | 'rare' | 'epic' | 'legendary' | 'mythic' | 'divine';
     gold?: number;
     exp?: number;
   }

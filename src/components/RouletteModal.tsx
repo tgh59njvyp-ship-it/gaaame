@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CharacterState } from '../types';
-import { Sparkles, Gift, Trophy, CheckCircle, RotateCw } from 'lucide-react';
+import { Sparkles, Gift, Trophy, CheckCircle, RotateCw, Flame, Star } from 'lucide-react';
 import { motion } from 'motion/react';
 import { createLogEntry, appendLogToCharacter } from '../utils/logHelper';
 import { checkAndUpdateBeginnerQuests } from '../utils/beginnerQuests';
@@ -54,18 +54,17 @@ export const RouletteModal: React.FC<RouletteModalProps> = ({
     // Weighted random selection: Guarantee at least 10-pull, give 80% 10-pull variants, 15% 15~20-pull, 5% jackpot/30-pull
     const rand = Math.random() * 100;
     let selectedSliceIndex = 0;
-    if (rand < 40) selectedSliceIndex = 0; // 10連
-    else if (rand < 65) selectedSliceIndex = 1; // 10連 + 1000Gems
-    else if (rand < 80) selectedSliceIndex = 4; // 10連
-    else if (rand < 90) selectedSliceIndex = 2; // 15連分
-    else if (rand < 96) selectedSliceIndex = 3; // 20連分
-    else if (rand < 99) selectedSliceIndex = 5; // 30連分
-    else selectedSliceIndex = 7; // 100連 Jackpot!
+    if (rand < 40) selectedSliceIndex = 0;
+    else if (rand < 65) selectedSliceIndex = 1;
+    else if (rand < 80) selectedSliceIndex = 4;
+    else if (rand < 90) selectedSliceIndex = 2;
+    else if (rand < 96) selectedSliceIndex = 3;
+    else if (rand < 99) selectedSliceIndex = 5;
+    else selectedSliceIndex = 7; // Jackpot!
 
     const sliceAngle = 360 / WHEEL_SLICES.length;
-    // Align target slice to the top pointer (index 0 is at 0 deg, so slice N is at N * 45 deg)
     const targetAngle = 360 - (selectedSliceIndex * sliceAngle + sliceAngle / 2);
-    const extraRounds = 360 * 6; // 6 full rotations for excitement
+    const extraRounds = 360 * 7; // 7 full rotations for grand excitement
     const finalRotation = rotationDegree + extraRounds + targetAngle;
 
     setRotationDegree(finalRotation);
@@ -82,59 +81,71 @@ export const RouletteModal: React.FC<RouletteModalProps> = ({
         lastRouletteDate: todayStr,
       };
 
-      // Beginner quest check
       updatedChar = checkAndUpdateBeginnerQuests(updatedChar, 'roulette', 1);
 
       const logMsg = createLogEntry(
         'gacha',
-        `ログボルーレット実行: 「${prize.label}」`,
-        `デイリールーレットで 【${prize.label} (${prize.subLabel})】 を獲得！`,
+        `盛大ログボ獲得: 「${prize.label}」`,
+        `デイリールーレットで 【${prize.label} (${prize.subLabel})】 を盛大に獲得しました！`,
         undefined,
         { gold: 0, exp: 0 }
       );
       updatedChar = appendLogToCharacter(updatedChar, logMsg);
 
       onUpdateCharacter(updatedChar);
-      onShowMessage(`🎉 ログボルーレット当選: 「${prize.label}」を獲得しました！`);
+      onShowMessage(`🎉 【盛大報酬】ログインボーナス「${prize.label}」を獲得しました！`);
     }, 4500);
   };
 
   return (
-    <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-backdropFadeIn">
-      <div className="bg-[#0b0c10] border-2 border-amber-500/80 max-w-lg w-full rounded-3xl p-6 shadow-[0_0_50px_rgba(245,158,11,0.3)] text-white relative overflow-hidden animate-modalExpand">
-        
-        {/* Background glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-50 flex items-center justify-center p-4 animate-backdropFadeIn">
+      
+      {/* Spectacular celebratory background rays */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-500/20 via-purple-900/10 to-transparent pointer-events-none animate-pulse" />
 
-        {/* Header */}
-        <div className="flex justify-between items-center mb-4 pb-3 border-b border-white/10 relative z-10">
+      <motion.div
+        initial={{ scale: 0.85, opacity: 0, y: 30 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+        className="bg-gradient-to-b from-[#12131c] via-[#0b0c10] to-[#07080a] border-2 border-amber-400/90 max-w-lg w-full rounded-3xl p-6 sm:p-8 shadow-[0_0_80px_rgba(245,158,11,0.45)] text-white relative overflow-hidden"
+      >
+        
+        {/* Floating sparkles and particles */}
+        <div className="absolute -top-10 -left-10 w-40 h-40 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-purple-500/20 rounded-full blur-3xl pointer-events-none" />
+
+        {/* Header with grand badge */}
+        <div className="flex justify-between items-center mb-4 pb-4 border-b border-white/15 relative z-10">
           <div>
-            <div className="flex items-center gap-1.5 text-amber-400 text-xs font-mono font-bold tracking-widest uppercase">
-              <Gift className="w-4 h-4" /> DAILY LOGIN ROULETTE
+            <div className="flex items-center gap-1.5 text-amber-400 text-xs font-mono font-black tracking-widest uppercase">
+              <Star className="w-4 h-4 fill-amber-400 animate-spin" /> GRAND DAILY LOGIN BONUS
             </div>
-            <h3 className="text-xl font-black text-white tracking-tight flex items-center gap-2 mt-0.5">
-              <span>ログボガチャ券ルーレット</span>
+            <h3 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-100 to-amber-500 tracking-tight flex items-center gap-2 mt-1">
+              <span>👑 盛大ログインボーナス祭</span>
             </h3>
           </div>
           <button
             onClick={onClose}
-            className="text-xs text-slate-400 hover:text-white px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl cursor-pointer"
+            className="text-xs text-slate-300 hover:text-white px-3.5 py-2 bg-slate-900/90 border border-slate-700 rounded-xl cursor-pointer hover:bg-slate-800 transition shadow-md"
           >
             閉じる ✕
           </button>
         </div>
 
-        <p className="text-xs text-slate-300 leading-relaxed mb-4 text-center font-bold relative z-10">
-          ✨ 毎日1回挑戦！<span className="text-amber-400 underline">最低でも「10連ガチャ券」が100%確定当選</span>！
-        </p>
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3 text-center mb-6 relative z-10 shadow-inner">
+          <p className="text-xs sm:text-sm text-amber-200 font-bold leading-relaxed flex items-center justify-center gap-1.5">
+            <Flame className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>本日ログイン記念！<span className="text-amber-400 underline font-black">【10連ガチャ券】が100%確定</span>で今すぐ手に入ります！</span>
+          </p>
+        </div>
 
         {/* ROULETTE WHEEL CONTAINER */}
-        <div className="relative my-6 flex flex-col items-center justify-center">
+        <div className="relative my-4 flex flex-col items-center justify-center">
           {/* Wheel Pointer Arrow */}
-          <div className="absolute -top-3 z-30 w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-t-[20px] border-t-amber-400 drop-shadow-[0_4px_10px_rgba(245,158,11,0.8)]" />
+          <div className="absolute -top-3 z-30 w-0 h-0 border-l-[14px] border-l-transparent border-r-[14px] border-r-transparent border-t-[22px] border-t-amber-400 drop-shadow-[0_4px_15px_rgba(245,158,11,0.9)] animate-bounce" />
 
           {/* Wheel Graphic */}
-          <div className="w-64 h-64 md:w-72 md:h-72 rounded-full border-4 border-amber-400 shadow-[0_0_30px_rgba(245,158,11,0.4)] relative overflow-hidden flex items-center justify-center">
+          <div className="w-72 h-72 sm:w-80 sm:h-80 rounded-full border-4 border-amber-400 shadow-[0_0_40px_rgba(245,158,11,0.5)] relative overflow-hidden flex items-center justify-center">
             <motion.div
               className="w-full h-full rounded-full relative"
               animate={{ rotate: rotationDegree }}
@@ -152,26 +163,25 @@ export const RouletteModal: React.FC<RouletteModalProps> = ({
                 )`,
               }}
             >
-              {/* Slice Labels */}
               {WHEEL_SLICES.map((slice, idx) => {
                 const angle = idx * 45 + 22.5;
                 return (
                   <div
                     key={slice.id}
-                    className="absolute top-0 left-1/2 w-1 h-1/2 origin-bottom flex items-start justify-center pt-2"
+                    className="absolute top-0 left-1/2 w-1.5 h-1/2 origin-bottom flex items-start justify-center pt-3"
                     style={{ transform: `translateX(-50%) rotate(${angle}deg)` }}
                   >
-                    <span className="text-[10px] font-black text-white text-center leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] max-w-[65px] font-mono">
-                      {slice.label.split(' ')[0]}
+                    <span className="text-[10px] sm:text-xs font-black text-white text-center leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] max-w-[75px] font-mono">
+                      {slice.label}
                     </span>
                   </div>
                 );
               })}
             </motion.div>
 
-            {/* Wheel Center Peg */}
-            <div className="absolute w-14 h-14 rounded-full bg-slate-950 border-2 border-amber-400 shadow-2xl flex items-center justify-center z-20">
-              <Sparkles className="w-6 h-6 text-amber-400 animate-pulse" />
+            {/* Center Peg */}
+            <div className="absolute w-16 h-16 rounded-full bg-slate-950 border-3 border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.8)] flex items-center justify-center z-20">
+              <Sparkles className="w-7 h-7 text-amber-400 animate-spin" style={{ animationDuration: '6s' }} />
             </div>
           </div>
         </div>
@@ -182,47 +192,59 @@ export const RouletteModal: React.FC<RouletteModalProps> = ({
             <button
               onClick={handleSpin}
               disabled={isSpinning}
-              className={`w-full py-4 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-base rounded-2xl shadow-[0_0_25px_rgba(245,158,11,0.5)] flex items-center justify-center gap-2 transition cursor-pointer transform hover:scale-[1.02] ${
-                isSpinning ? 'opacity-50 cursor-not-allowed' : ''
+              className={`w-full py-4 sm:py-5 bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-black text-base sm:text-lg rounded-2xl shadow-[0_0_35px_rgba(245,158,11,0.6)] flex items-center justify-center gap-2.5 transition cursor-pointer transform hover:scale-[1.02] active:scale-95 ${
+                isSpinning ? 'opacity-60 cursor-not-allowed animate-pulse' : ''
               }`}
             >
-              <RotateCw className={`w-5 h-5 ${isSpinning ? 'animate-spin' : ''}`} />
-              <span>{isSpinning ? 'ルーレット回転中...' : '🎯 ログボルーレットを回す！ (100% 10連券GET)'}</span>
+              <RotateCw className={`w-6 h-6 ${isSpinning ? 'animate-spin' : ''}`} />
+              <span>{isSpinning ? 'ルーレット高速回転中...' : '🎯 今すぐ盛大にルーレットを回す！'}</span>
             </button>
           ) : (
-            <div className="p-4 bg-slate-900/80 border border-slate-700/80 rounded-2xl space-y-2">
-              <div className="flex items-center justify-center gap-2 text-emerald-400 font-bold text-sm">
-                <CheckCircle className="w-4 h-4" /> 本日のログボルーレットは回し終えています！
+            <div className="p-4 bg-slate-900/90 border border-emerald-500/40 rounded-2xl space-y-2.5 shadow-lg">
+              <div className="flex items-center justify-center gap-2 text-emerald-400 font-black text-sm">
+                <CheckCircle className="w-5 h-5" /> 本日の盛大ログインボーナス受取済み！
               </div>
-              <p className="text-xs text-slate-400">明日日付が変わると、再び10連ガチャ券以上が当たるルーレットに挑戦できます！</p>
+              <p className="text-xs text-slate-300">明日日付が変わると、再び豪華なルーレットに挑戦できます。</p>
               
-              {/* Allow test spin button for player if they want */}
               <button
                 onClick={handleSpin}
                 disabled={isSpinning}
-                className="mt-2 text-xs text-amber-400 hover:text-amber-300 underline font-mono cursor-pointer"
+                className="text-xs text-amber-400 hover:text-amber-300 underline font-mono cursor-pointer pt-1"
               >
-                （開発検証用: もう一度回す）
+                （テスト確認用: もう一度回す）
               </button>
             </div>
           )}
         </div>
 
-        {/* WON PRIZE MODAL ANNOUNCEMENT */}
+        {/* SPECTACULAR WON PRIZE ANNOUNCEMENT */}
         {wonPrize && (
-          <div className="mt-4 p-4 bg-gradient-to-r from-amber-950/90 via-orange-950/90 to-amber-950/90 border-2 border-amber-400 rounded-2xl text-center space-y-2 animate-bounce">
-            <div className="inline-flex items-center gap-1.5 text-xs font-black px-3 py-1 bg-amber-400 text-slate-950 rounded-full font-mono uppercase">
-              <Trophy className="w-4 h-4" /> 当選おめでとうございます！
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+            className="mt-5 p-5 bg-gradient-to-r from-amber-950 via-purple-950 to-amber-950 border-2 border-amber-400 rounded-3xl text-center space-y-2 shadow-[0_0_50px_rgba(245,158,11,0.6)] relative overflow-hidden"
+          >
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-400/20 via-transparent to-transparent pointer-events-none" />
+            
+            <div className="inline-flex items-center gap-1.5 text-xs font-black px-4 py-1.5 bg-amber-400 text-slate-950 rounded-full font-mono uppercase shadow-md animate-pulse">
+              <Trophy className="w-4 h-4" /> 盛大当選おめでとうございます！
             </div>
-            <h4 className="text-lg font-black text-amber-200">{wonPrize.label}</h4>
-            <p className="text-xs text-amber-300 font-mono font-bold">{wonPrize.subLabel}</p>
-            <div className="text-xs text-slate-200">
-              【10連ガチャチケット】 × <strong className="text-amber-400 text-base">{wonPrize.tickets}</strong> 枚 追加完了！
+            
+            <h4 className="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-400 tracking-tight">
+              {wonPrize.label}
+            </h4>
+            
+            <p className="text-xs sm:text-sm text-amber-300 font-mono font-bold">{wonPrize.subLabel}</p>
+            
+            <div className="text-xs sm:text-sm text-slate-100 bg-black/40 py-2 px-4 rounded-xl border border-white/10 inline-block">
+              🎁 【10連ガチャチケット】 × <strong className="text-amber-400 text-lg">{wonPrize.tickets}</strong> 枚 獲得完了！
+              {wonPrize.gems > 0 && <span className="text-purple-300 ml-2">+ {wonPrize.gems} Gems</span>}
             </div>
-          </div>
+          </motion.div>
         )}
 
-      </div>
+      </motion.div>
     </div>
   );
 };

@@ -44,7 +44,7 @@ export interface Spell {
   desc: string;
   effectType: 'damage' | 'heal' | 'buff' | 'debuff' | 'drain';
   element?: 'fire' | 'ice' | 'wind' | 'lightning' | 'holy' | 'dark' | 'arcane';
-  rarity?: 'common' | 'rare' | 'epic' | 'legendary';
+  rarity?: 'common' | 'rare' | 'epic' | 'legendary' | 'mythic' | 'divine';
   plusLevel?: number;
   minReincarnationReq?: number;
   statusEffect?: {
@@ -99,7 +99,7 @@ export interface AdventureLogEntry {
   category: LogCategory;
   title: string;
   description: string;
-  rarity?: 'common' | 'rare' | 'epic' | 'legendary';
+  rarity?: 'common' | 'rare' | 'epic' | 'legendary' | 'mythic' | 'divine';
   gold?: number;
   exp?: number;
 }
@@ -188,7 +188,7 @@ export interface Item {
   id: string;
   name: string;
   type: 'weapon' | 'armor' | 'accessory' | 'potion' | 'scroll';
-  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  rarity: 'common' | 'rare' | 'epic' | 'legendary' | 'mythic' | 'divine';
   stats?: {
     atk?: number;
     def?: number;

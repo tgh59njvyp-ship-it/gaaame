@@ -90,6 +90,18 @@ export default function App() {
     }
   }, []);
 
+  useEffect(() => {
+    if (phase === 'hub' && character) {
+      const todayStr = new Date().toISOString().split('T')[0];
+      if (character.lastRouletteDate !== todayStr) {
+        const timer = setTimeout(() => {
+          setShowRouletteModal(true);
+        }, 400);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [phase, character?.name]);
+
   const handleReincarnate = () => {
     const currentCount = character?.reincarnationCount || reincarnationMeta.count || 0;
     const nextCount = currentCount + 1;
@@ -220,6 +232,7 @@ export default function App() {
     setFloors(initFloors);
     setPhase('hub');
     setHubTab('dungeon');
+    setShowRouletteModal(true);
     saveGameToStorage(charWithTitles, 1, initFloors, 'hub');
   };
 

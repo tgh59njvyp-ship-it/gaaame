@@ -3,10 +3,11 @@ import { CharacterState, Item, EquipmentPreset } from '../types';
 import { getTitleBonuses, TITLES } from '../utils/titleUtils';
 import { getSkillStatsBonus, ALL_SKILLS, unlockSkillNode, SkillNode } from '../utils/skillUtils';
 import { calculateCombatPower, canReincarnate, getReincarnationPowerReq, getReincarnationLevelReq } from '../utils/combatPower';
+import { generateSynthesizedLoot } from '../utils/lootGenerator';
 import { 
   X, Sword, Shield, Backpack, Sparkles, Check, Award, Share2, 
   Lock, ArrowRight, Zap, RefreshCw, Star, Info, Flame, FlameKindling, Crown, Trash2, AlertTriangle,
-  Save, Edit3, Layers, ArrowUpDown, CheckCircle2, Bookmark, ShieldOff
+  Save, Edit3, Layers, ArrowUpDown, CheckCircle2, Bookmark, ShieldOff, FlaskConical, Plus
 } from 'lucide-react';
 
 interface InventoryModalProps {
@@ -23,7 +24,7 @@ export const InventoryModal: React.FC<InventoryModalProps> = ({
   onTriggerReincarnate 
 }) => {
   const [copied, setCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState<'status' | 'skills'>('status');
+  const [activeTab, setActiveTab] = useState<'status' | 'skills' | 'synthesis'>('status');
   const [skillFeedback, setSkillFeedback] = useState<{ text: string; isError: boolean } | null>(null);
   const [showReincarnateConfirm, setShowReincarnateConfirm] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -35,6 +36,82 @@ export const InventoryModal: React.FC<InventoryModalProps> = ({
     invIndex?: number;
     equipType?: 'weapon' | 'armor' | 'accessory';
   } | null>(null);
+
+  // Alchemy Synthesis States
+  const [selectedMaterialIndexes, setSelectedMaterialIndexes] = useState<number[]>([]);
+  const [isSynthesizing, setIsSynthesizing] = useState(false);
+  const [synthesizedResultItem, setSynthesizedResultItem] = useState<Item | null>(null);
+  const [synthesisFilter, setSynthesisFilter] = useState<'all' | 'common' | 'rare' | 'epic' | 'legendary' | 'mythic' | 'divine'>('all');
+
+  const toggleMaterialIndex = (index: number) => {
+    if (selectedMaterialIndexes.includes(index)) {
+      setSelectedMaterialIndexes(selectedMaterialIndexes.filter(i => i !== index));
+    } else {
+      if (selectedMaterialIndexes.length >= 5) return;
+      setSelectedMaterialIndexes([...selectedMaterialIndexes, index]);
+    }
+  };
+
+  const handleAutoSelectMaterials = (targetRarity: Item['rarity']) => {
+    const indexes: number[] = [];
+    character.inventory.forEach((item, idx) => {
+      if (item.rarity === targetRarity && indexes.length < 5) {
+        indexes.push(idx);
+      }
+    });
+    setSelectedMaterialIndexes(indexes);
+  };
+
+  const handleRunSynthesis = () => {
+    if (selectedMaterialIndexes.length < 2 || isSynthesizing) return;
+
+    setIsSynthesizing(true);
+
+    setTimeout(() => {
+      const selectedMaterials = selectedMaterialIndexes.map(idx => character.inventory[idx]).filter(Boolean);
+      const newSynthesizedItem = generateSynthesizedLoot(selectedMaterials, character.level);
+
+      const updatedInventory = character.inventory.filter((_, idx) => !selectedMaterialIndexes.includes(idx));
+      updatedInventory.push(newSynthesizedItem);
+
+      const updatedChar: CharacterState = {
+        ...character,
+        inventory: updatedInventory
+      };
+
+      onEquipItem(updatedChar);
+      setSelectedMaterialIndexes([]);
+      setIsSynthesizing(false);
+      setSynthesizedResultItem(newSynthesizedItem);
+    }, 1200);
+  };
+
+  const getSynthesisForecast = () => {
+    if (selectedMaterialIndexes.length < 2) return null;
+    const selectedMaterials = selectedMaterialIndexes.map(idx => character.inventory[idx]).filter(Boolean);
+    
+    const rarityScores: Record<Item['rarity'], number> = { common: 1, rare: 2, epic: 3, legendary: 4, mythic: 5, divine: 6 };
+    const totalScore = selectedMaterials.reduce((acc, m) => acc + (rarityScores[m.rarity] || 1), 0);
+    const avgScore = totalScore / selectedMaterials.length;
+    const countBonus = (selectedMaterials.length - 2) * 0.4;
+    const finalScore = avgScore + countBonus;
+
+    if (finalScore >= 5.8) {
+      return { primary: 'DIVINE / MYTHIC 100%', secondary: '創世神絶級 確定', color: 'text-rose-300 border-rose-400 bg-rose-950/60' };
+    } else if (finalScore >= 4.8) {
+      return { primary: 'MYTHIC 70% / LEGENDARY 30%', secondary: '神話級以上確定', color: 'text-amber-300 border-amber-400 bg-amber-950/60' };
+    } else if (finalScore >= 4.0) {
+      return { primary: 'LEGENDARY 100%', secondary: '最高級確定', color: 'text-amber-400 border-amber-500 bg-amber-950/60' };
+    } else if (finalScore >= 3.2) {
+      return { primary: 'LEGENDARY 80%', secondary: 'EPIC 20%', color: 'text-amber-400 border-amber-500 bg-amber-950/40' };
+    } else if (finalScore >= 2.2) {
+      return { primary: 'EPIC 65%', secondary: 'LEGENDARY 25% / RARE 10%', color: 'text-purple-400 border-purple-500 bg-purple-950/40' };
+    } else if (finalScore >= 1.4) {
+      return { primary: 'RARE 70%', secondary: 'EPIC 20% / COMMON 10%', color: 'text-blue-400 border-blue-500 bg-blue-950/40' };
+    } else {
+      return { primary: 'RARE 70%', secondary: 'COMMON 30%', color: 'text-emerald-400 border-emerald-500 bg-emerald-950/40' };
+    }
+  };
 
   const getEquipmentComparison = (candidateItem: Item) => {
     if (candidateItem.type !== 'weapon' && candidateItem.type !== 'armor' && candidateItem.type !== 'accessory') {
@@ -82,6 +159,10 @@ export const InventoryModal: React.FC<InventoryModalProps> = ({
 
   const getRarityBadgeStyle = (rarity: Item['rarity']) => {
     switch (rarity) {
+      case 'divine':
+        return 'border-rose-400 bg-gradient-to-r from-rose-950/80 via-purple-950/80 to-amber-950/80 shadow-[0_0_20px_rgba(244,63,94,0.6)] text-rose-200 animate-pulse';
+      case 'mythic':
+        return 'border-amber-400 bg-gradient-to-r from-amber-950/80 via-orange-950/80 to-red-950/80 shadow-[0_0_15px_rgba(245,158,11,0.5)] text-amber-200';
       case 'legendary':
         return 'border-amber-500/80 bg-amber-950/40 shadow-amber-950/40 text-amber-300';
       case 'epic':
@@ -574,7 +655,7 @@ https://ai.studio/build
               <Award className="w-4 h-4" /> ADVOCATE IDENTITY & DESTINY
             </div>
             <h2 className="text-2xl font-black text-white flex items-center gap-2">
-              {activeTab === 'status' ? 'ステータスと装備品' : '天賦スキルツリー'}
+              {activeTab === 'status' ? 'ステータスと装備品' : activeTab === 'synthesis' ? '錬金合成工房' : '天賦スキルツリー'}
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
               {character.name} （{character.classInfo.name} / {character.race.name}）
@@ -608,6 +689,21 @@ https://ai.studio/build
             🎒 装備品 & ステータス
           </button>
           <button
+            onClick={() => setActiveTab('synthesis')}
+            className={`flex-1 py-3 text-xs font-black tracking-widest rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              activeTab === 'synthesis'
+                ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/10 text-purple-300 border border-purple-500/40 shadow-inner'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            ⚗️ 錬金合成
+            {character.inventory.length >= 2 && (
+              <span className="bg-purple-950 text-purple-300 border border-purple-700 text-[10px] px-1.5 py-0.2 rounded-md font-mono font-bold">
+                {character.inventory.length}
+              </span>
+            )}
+          </button>
+          <button
             onClick={() => setActiveTab('skills')}
             className={`flex-1 py-3 text-xs font-black tracking-widest rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
               activeTab === 'skills'
@@ -615,7 +711,7 @@ https://ai.studio/build
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            🧬 宿命のスキルツリー
+            🧬 スキルツリー
             <span className="bg-indigo-950 text-indigo-400 border border-indigo-800 text-[10px] px-1.5 py-0.2 rounded-md font-mono">
               SP {character.sp !== undefined ? character.sp : 0}
             </span>
@@ -1070,9 +1166,18 @@ https://ai.studio/build
 
             {/* Inventory List */}
             <div>
-              <div className="flex justify-between items-center mb-3">
+              <div className="flex flex-wrap justify-between items-center gap-2 mb-3">
                 <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">所持品バッグ ({character.inventory.length})</h3>
-                <span className="text-[10px] text-slate-500">※アイテムをタップで詳細確認＆装備</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setActiveTab('synthesis')}
+                    className="px-2.5 py-1 bg-purple-950/70 hover:bg-purple-900/90 text-purple-300 border border-purple-600/50 rounded-lg text-[10px] font-bold flex items-center gap-1 transition cursor-pointer shadow-sm hover:scale-102"
+                  >
+                    <FlaskConical className="w-3.5 h-3.5 text-purple-400" />
+                    <span>不要アイテムの錬金合成 (錬金釜)</span>
+                  </button>
+                  <span className="text-[10px] text-slate-500 hidden sm:inline">※タップで比較・詳細確認</span>
+                </div>
               </div>
               {character.inventory.length === 0 ? (
                 <div className="bg-[#121215] p-6 rounded-2xl border border-[#2d2d30] text-center">
@@ -1401,6 +1506,267 @@ https://ai.studio/build
                 </div>
               </div>
 
+            </div>
+          </div>
+        )}
+
+        {/* TAB 3: ALCHEMY SYNTHESIS (錬金合成工房) */}
+        {activeTab === 'synthesis' && (
+          <div className="animate-fadeIn space-y-5">
+            {/* Cauldron Banner */}
+            <div className="bg-gradient-to-r from-[#170e28] via-[#1f1133] to-[#0f1220] border-2 border-purple-500/50 rounded-3xl p-5 relative overflow-hidden shadow-[0_0_30px_rgba(168,85,247,0.15)]">
+              <div className="absolute top-0 right-0 w-40 h-40 bg-purple-500/10 rounded-full blur-2xl pointer-events-none"></div>
+              
+              <div className="flex items-start justify-between gap-4 mb-3 relative z-10">
+                <div>
+                  <div className="flex items-center gap-1.5 text-xs text-purple-400 font-mono font-bold tracking-wider mb-1">
+                    <FlaskConical className="w-4 h-4 text-purple-400 animate-pulse" /> ALCHEMY FUSION CAULDRON
+                  </div>
+                  <h3 className="text-xl font-black text-white flex items-center gap-2">
+                    錬金秘術の釜 （錬成・合成）
+                  </h3>
+                  <p className="text-xs text-slate-300 mt-1 leading-relaxed max-w-xl">
+                    不要になった低ランクアイテム（2〜5個）を錬金釜に投入し、高ランクのレア・エピック・レジェンドアイテムを確率で錬生します！
+                  </p>
+                </div>
+
+                {/* Quick Auto-Select Buttons */}
+                <div className="hidden sm:flex flex-col gap-1.5 shrink-0">
+                  <span className="text-[10px] font-mono text-slate-400 font-bold text-right">一括投入ショートカット:</span>
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={() => handleAutoSelectMaterials('common')}
+                      className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 rounded-lg text-[10px] font-mono font-bold transition cursor-pointer"
+                    >
+                      COMMON 3個
+                    </button>
+                    <button
+                      onClick={() => handleAutoSelectMaterials('rare')}
+                      className="px-2.5 py-1 bg-blue-950 hover:bg-blue-900 text-blue-300 border border-blue-700 rounded-lg text-[10px] font-mono font-bold transition cursor-pointer"
+                    >
+                      RARE 3個
+                    </button>
+                    {selectedMaterialIndexes.length > 0 && (
+                      <button
+                        onClick={() => setSelectedMaterialIndexes([])}
+                        className="px-2 py-1 bg-red-950/60 hover:bg-red-900/80 text-red-300 border border-red-800 rounded-lg text-[10px] font-mono font-bold transition cursor-pointer"
+                      >
+                        全解除
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Mobile Auto Select */}
+              <div className="sm:hidden flex items-center gap-2 pt-2 border-t border-purple-500/20 mb-3">
+                <span className="text-[10px] font-mono text-slate-400">一括投入:</span>
+                <button
+                  onClick={() => handleAutoSelectMaterials('common')}
+                  className="px-2 py-0.5 bg-slate-900 text-slate-300 border border-slate-700 rounded text-[10px] font-mono"
+                >
+                  COMMON 3個
+                </button>
+                <button
+                  onClick={() => handleAutoSelectMaterials('rare')}
+                  className="px-2 py-0.5 bg-blue-950 text-blue-300 border border-blue-700 rounded text-[10px] font-mono"
+                >
+                  RARE 3個
+                </button>
+                {selectedMaterialIndexes.length > 0 && (
+                  <button
+                    onClick={() => setSelectedMaterialIndexes([])}
+                    className="px-2 py-0.5 bg-red-950/60 text-red-300 border border-red-800 rounded text-[10px] font-mono"
+                  >
+                    解除
+                  </button>
+                )}
+              </div>
+
+              {/* Cauldron Slots Crucible */}
+              <div className="bg-black/60 p-4 rounded-2xl border border-purple-500/30 relative z-10">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-mono font-bold text-purple-300 uppercase tracking-wider flex items-center gap-1">
+                    🧪 投入中の素材スロット ({selectedMaterialIndexes.length} / 5)
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-400">
+                    ※最低2個以上投入で錬成可能
+                  </span>
+                </div>
+
+                {/* 5 Crucible Slots */}
+                <div className="grid grid-cols-5 gap-2 mb-3">
+                  {[0, 1, 2, 3, 4].map(slotIdx => {
+                    const invIdx = selectedMaterialIndexes[slotIdx];
+                    const matItem = invIdx !== undefined ? character.inventory[invIdx] : null;
+
+                    return (
+                      <div
+                        key={slotIdx}
+                        className={`aspect-square rounded-2xl border flex flex-col items-center justify-center p-1.5 transition-all relative ${
+                          matItem
+                            ? `${getRarityBadgeStyle(matItem.rarity)} shadow-md`
+                            : 'border-dashed border-slate-800 bg-slate-950/50 text-slate-600'
+                        }`}
+                      >
+                        {matItem ? (
+                          <>
+                            <button
+                              onClick={() => toggleMaterialIndex(invIdx)}
+                              className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-600 text-white flex items-center justify-center text-[10px] font-bold shadow hover:bg-red-500 transition cursor-pointer z-10"
+                            >
+                              ✕
+                            </button>
+                            <div className="text-xs">
+                              {matItem.type === 'weapon' ? '⚔️' :
+                               matItem.type === 'armor' ? '🛡️' :
+                               matItem.type === 'accessory' ? '💍' : '🧪'}
+                            </div>
+                            <span className="text-[9px] font-bold text-white truncate w-full text-center mt-0.5 leading-tight">
+                              {matItem.name}
+                            </span>
+                            <span className="text-[8px] font-mono uppercase px-1 rounded bg-black/60 text-amber-400 mt-0.5">
+                              {matItem.rarity.substring(0, 3)}
+                            </span>
+                          </>
+                        ) : (
+                          <div className="text-center">
+                            <Plus className="w-4 h-4 mx-auto text-slate-700" />
+                            <span className="text-[8px] font-mono text-slate-700 block mt-0.5">空き</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Forecast & Synthesize Button Row */}
+                {selectedMaterialIndexes.length >= 2 ? (
+                  (() => {
+                    const forecast = getSynthesisForecast();
+                    return (
+                      <div className="p-3 bg-[#110f1c] rounded-xl border border-purple-500/40 flex flex-wrap items-center justify-between gap-3 animate-fadeIn">
+                        <div>
+                          <span className="text-[10px] font-mono font-bold text-purple-300 block">
+                            🔮 錬成予測確率 (FORECAST EXPECTATION):
+                          </span>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className={`text-xs font-mono font-black px-2 py-0.5 rounded border ${forecast?.color}`}>
+                              {forecast?.primary}
+                            </span>
+                            <span className="text-[10px] font-mono text-slate-400">
+                              （内訳: {forecast?.secondary}）
+                            </span>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={handleRunSynthesis}
+                          disabled={isSynthesizing}
+                          className="px-5 py-2.5 bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 hover:from-purple-500 hover:to-amber-400 text-white font-black text-xs rounded-xl shadow-lg shadow-purple-950/60 flex items-center gap-2 transition transform hover:scale-102 cursor-pointer border border-purple-400/50 shrink-0"
+                        >
+                          <Sparkles className="w-4 h-4 animate-spin-slow" />
+                          <span>錬金実行（素材を消費）</span>
+                        </button>
+                      </div>
+                    );
+                  })()
+                ) : (
+                  <div className="p-3 bg-[#0d0c12] rounded-xl border border-slate-800 text-center">
+                    <span className="text-xs text-slate-500 font-mono">
+                      ※下部の一覧から不要なアイテムをタップして2個以上選択してください
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Material Items Selection Bag */}
+            <div className="bg-[#0e0e14] p-4 rounded-3xl border border-[#232330]">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3 pb-2 border-b border-slate-800">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-xs font-bold text-slate-300 uppercase font-mono">
+                    🎒 素材選択バッグ ({character.inventory.length})
+                  </h4>
+                  <span className="text-[10px] font-mono text-purple-400 bg-purple-950/60 px-2 py-0.5 rounded border border-purple-800">
+                    選択中: {selectedMaterialIndexes.length} / 5
+                  </span>
+                </div>
+
+                {/* Filter chips */}
+                <div className="flex items-center gap-1 flex-wrap">
+                  {(['all', 'common', 'rare', 'epic', 'legendary', 'mythic', 'divine'] as const).map(f => (
+                    <button
+                      key={f}
+                      onClick={() => setSynthesisFilter(f)}
+                      className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase transition cursor-pointer ${
+                        synthesisFilter === f
+                          ? 'bg-purple-900 text-purple-200 border border-purple-500'
+                          : 'bg-slate-900 text-slate-500 hover:text-slate-300 border border-slate-800'
+                      }`}
+                    >
+                      {f}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Items List for Synthesis */}
+              {character.inventory.length === 0 ? (
+                <div className="p-8 text-center text-slate-500 text-xs">
+                  インベントリに所持品がありません。ダンジョンやショップでアイテムを獲得してください。
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 max-h-[35vh] overflow-y-auto pr-1">
+                  {character.inventory
+                    .map((item, originalIdx) => ({ item, originalIdx }))
+                    .filter(({ item }) => synthesisFilter === 'all' || item.rarity === synthesisFilter)
+                    .map(({ item, originalIdx }) => {
+                      const isSelected = selectedMaterialIndexes.includes(originalIdx);
+
+                      return (
+                        <div
+                          key={item.id || originalIdx}
+                          onClick={() => toggleMaterialIndex(originalIdx)}
+                          className={`p-2.5 rounded-2xl border transition-all cursor-pointer relative flex flex-col justify-between ${
+                            isSelected
+                              ? 'bg-gradient-to-b from-purple-950/80 to-slate-950 border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.3)] scale-102 z-10'
+                              : 'bg-[#121218] hover:bg-[#181822] border-slate-800 hover:border-slate-600'
+                          }`}
+                        >
+                          {isSelected && (
+                            <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-black text-xs shadow z-10">
+                              ✓
+                            </div>
+                          )}
+
+                          <div>
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <span className="text-xs">
+                                {item.type === 'weapon' ? '⚔️' :
+                                 item.type === 'armor' ? '🛡️' :
+                                 item.type === 'accessory' ? '💍' : '🧪'}
+                              </span>
+                              <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.2 rounded bg-black/60 border border-white/10 text-slate-300">
+                                [{item.rarity.substring(0, 4)}]
+                              </span>
+                            </div>
+
+                            <h5 className="text-xs font-bold text-white truncate leading-tight">{item.name}</h5>
+                          </div>
+
+                          <div className="mt-2 text-[10px] font-mono text-slate-400 border-t border-slate-800/80 pt-1">
+                            {item.stats?.atk !== undefined && <span className="text-rose-400 mr-1">ATK+{item.stats.atk}</span>}
+                            {item.stats?.def !== undefined && <span className="text-blue-400 mr-1">DEF+{item.stats.def}</span>}
+                            {item.stats?.hp !== undefined && <span className="text-emerald-400 mr-1">HP+{item.stats.hp}</span>}
+                            {item.stats?.spd !== undefined && <span className="text-amber-400 mr-1">SPD+{item.stats.spd}</span>}
+                            {item.effect && <span className="text-emerald-300">回復/強化</span>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1889,6 +2255,99 @@ https://ai.studio/build
           </div>
         );
       })()}
+
+      {/* Synthesizing Alchemy Animation Modal Overlay */}
+      {isSynthesizing && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-lg z-50 flex items-center justify-center p-4 animate-backdropFadeIn">
+          <div className="bg-[#0f0b18] border-2 border-purple-500 max-w-sm w-full rounded-3xl p-8 text-center shadow-[0_0_60px_rgba(168,85,247,0.4)] relative overflow-hidden animate-modalExpand">
+            <div className="w-20 h-20 rounded-full bg-purple-950/80 border-2 border-purple-400 mx-auto flex items-center justify-center text-purple-300 mb-4 animate-spin-slow shadow-lg">
+              <Sparkles className="w-10 h-10 animate-pulse text-amber-400" />
+            </div>
+            <h3 className="text-xl font-black text-white tracking-wider mb-2">錬成中...</h3>
+            <p className="text-xs font-mono text-purple-300 leading-relaxed">
+              素材の魔力を錬金釜に注入中...<br />
+              新たな高ランク物質が誕生します！
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Synthesized Result Reveal Modal Overlay */}
+      {synthesizedResultItem && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-50 flex items-center justify-center p-4 animate-backdropFadeIn">
+          <div className={`bg-[#0c0d12] border-2 max-w-md w-full rounded-3xl p-6 shadow-[0_0_60px_rgba(245,158,11,0.4)] text-slate-100 relative text-center animate-modalExpand ${getRarityBadgeStyle(synthesizedResultItem.rarity)}`}>
+            
+            <div className="inline-block text-[10px] font-mono font-black uppercase px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/60 mb-3 animate-bounce">
+              ✨ ALCHEMY SYNTHESIS SUCCESS! ✨
+            </div>
+
+            <h3 className="text-2xl font-black text-white mb-4">錬成成功！</h3>
+
+            {/* Generated Item Card */}
+            <div className="p-4 bg-slate-950/90 rounded-2xl border border-white/20 mb-4 shadow-inner text-left">
+              <div className="flex items-center gap-3 mb-3">
+                <div className={`w-12 h-12 rounded-xl border flex items-center justify-center shrink-0 ${getRarityBadgeStyle(synthesizedResultItem.rarity)}`}>
+                  {synthesizedResultItem.type === 'weapon' ? <Sword className="w-6 h-6 text-red-400" /> :
+                   synthesizedResultItem.type === 'armor' ? <Shield className="w-6 h-6 text-blue-400" /> :
+                   synthesizedResultItem.type === 'accessory' ? <Sparkles className="w-6 h-6 text-purple-400" /> :
+                   <Zap className="w-6 h-6 text-emerald-400" />}
+                </div>
+                <div>
+                  <span className="text-[10px] font-mono font-bold uppercase text-amber-400 block">
+                    [{synthesizedResultItem.rarity.toUpperCase()}]
+                  </span>
+                  <h4 className="text-base font-black text-white">{synthesizedResultItem.name}</h4>
+                </div>
+              </div>
+
+              <p className="text-xs text-slate-300 leading-relaxed mb-3">
+                {synthesizedResultItem.desc}
+              </p>
+
+              {/* Stats */}
+              {synthesizedResultItem.stats && (
+                <div className="grid grid-cols-2 gap-1.5 text-xs font-mono pt-2 border-t border-slate-800">
+                  {synthesizedResultItem.stats.atk !== undefined && <span className="text-rose-400 font-bold">⚔️ ATK: +{synthesizedResultItem.stats.atk}</span>}
+                  {synthesizedResultItem.stats.def !== undefined && <span className="text-blue-400 font-bold">🛡️ DEF: +{synthesizedResultItem.stats.def}</span>}
+                  {synthesizedResultItem.stats.hp !== undefined && <span className="text-emerald-400 font-bold">❤️ HP: +{synthesizedResultItem.stats.hp}</span>}
+                  {synthesizedResultItem.stats.mp !== undefined && <span className="text-purple-400 font-bold">✨ MP: +{synthesizedResultItem.stats.mp}</span>}
+                  {synthesizedResultItem.stats.spd !== undefined && <span className="text-amber-400 font-bold">⚡ SPD: +{synthesizedResultItem.stats.spd}</span>}
+                  {synthesizedResultItem.stats.crit !== undefined && <span className="text-yellow-400 font-bold">🎯 CRIT: +{synthesizedResultItem.stats.crit}%</span>}
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-2">
+              {(synthesizedResultItem.type === 'weapon' || synthesizedResultItem.type === 'armor' || synthesizedResultItem.type === 'accessory') && (
+                <button
+                  onClick={() => {
+                    const newItem = synthesizedResultItem;
+                    setSynthesizedResultItem(null);
+                    setSelectedItemDetail({
+                      item: newItem,
+                      isEquipped: false,
+                      invIndex: character.inventory.length - 1
+                    });
+                  }}
+                  className="w-full py-3 bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 cursor-pointer transition hover:scale-102"
+                >
+                  <Sword className="w-4 h-4 fill-current" />
+                  <span>この装備と比較・換装する</span>
+                </button>
+              )}
+
+              <button
+                onClick={() => setSynthesizedResultItem(null)}
+                className="w-full py-3 bg-[#181820] hover:bg-[#252530] border border-[#3a3528] text-slate-300 font-bold text-xs rounded-xl transition cursor-pointer"
+              >
+                バッグに保管して錬金工房へ戻る
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 };

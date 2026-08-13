@@ -302,8 +302,22 @@ export const GachaScreen: React.FC<GachaScreenProps> = ({ character, onUpdateCha
     }, 2000);
   };
 
-  const getRarityStyle = (rarity: 'common' | 'rare' | 'epic' | 'legendary') => {
+  const getRarityStyle = (rarity: 'common' | 'rare' | 'epic' | 'legendary' | 'mythic' | 'divine') => {
     switch (rarity) {
+      case 'divine':
+        return {
+          card: 'bg-gradient-to-b from-[#250d18] via-[#2c1235] to-[#0a0510] border-rose-400 shadow-[0_0_50px_rgba(244,63,94,0.7)]',
+          badge: 'bg-rose-500/20 text-rose-200 border-rose-400/80 shadow-[0_0_12px_rgba(244,63,94,0.5)]',
+          text: 'text-transparent bg-clip-text bg-gradient-to-r from-rose-200 via-purple-300 to-amber-200 font-black tracking-wider',
+          glow: 'absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-rose-500 via-purple-500 to-amber-400 opacity-30 blur-2xl animate-pulse pointer-events-none'
+        };
+      case 'mythic':
+        return {
+          card: 'bg-gradient-to-b from-[#24120a] via-[#331a0e] to-[#0d0704] border-amber-400 shadow-[0_0_40px_rgba(245,158,11,0.6)]',
+          badge: 'bg-amber-500/20 text-amber-200 border-amber-400/70 shadow-[0_0_10px_rgba(245,158,11,0.4)]',
+          text: 'text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-orange-200 to-red-400 font-extrabold',
+          glow: 'absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 opacity-25 blur-xl animate-pulse pointer-events-none'
+        };
       case 'legendary': 
         return {
           card: 'bg-gradient-to-b from-[#1c160a] via-[#2a1e0b] to-[#0c0903] border-amber-400 shadow-[0_0_35px_rgba(245,158,11,0.55)]',
