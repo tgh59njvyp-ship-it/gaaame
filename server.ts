@@ -73,6 +73,67 @@ app.post("/api/ai-event", async (req, res) => {
   }
 });
 
+// API endpoint for AI-generated monthly automatic events
+app.post("/api/generate-monthly-event", async (req, res) => {
+  try {
+    const { monthNumber } = req.body;
+    
+    if (!process.env.GEMINI_API_KEY) {
+      return res.json({
+        title: `第${monthNumber || 1}月: 虚空神域の降臨祭`,
+        themeName: "虚空降臨",
+        description: "1ヶ月の時を経て、異界の門が開かれ全プレイヤーに神話級の祝福が降り注ぎます！全ドロップ率2倍＆限定ガチャチケット配布！",
+        buffType: "drop_rate_boost",
+        buffValue: 2.0,
+        rewardItemName: "虚空の神晶石",
+      });
+    }
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.6-flash",
+      contents: `ファンタジーRPGの「1ヶ月ごとにAIが自動考案するマンスリー超大型イベント」を生成してください。
+現在のゲーム月数: 第${monthNumber || 1}月。
+以下のJSONフォーマットのみで出力してください:
+{
+  "title": "イベントタイトル（例: 第X月 神竜王の覚醒祭）",
+  "themeName": "テーマ名（例: 神竜王降臨）",
+  "description": "イベントの詳細説明（3文程度、盛大でワクワクするファンタジーRPGのイベント案内文）",
+  "buffType": "drop_rate_boost" または "exp_boost" または "gold_boost" または "gacha_discount",
+  "buffValue": 2.5,
+  "rewardItemName": "イベント限定の報酬アイテム名"
+}`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            title: { type: Type.STRING },
+            themeName: { type: Type.STRING },
+            description: { type: Type.STRING },
+            buffType: { type: Type.STRING },
+            buffValue: { type: Type.NUMBER },
+            rewardItemName: { type: Type.STRING },
+          },
+          required: ["title", "themeName", "description", "buffType", "buffValue", "rewardItemName"],
+        }
+      }
+    });
+
+    const data = JSON.parse(response.text || "{}");
+    res.json(data);
+  } catch (error: any) {
+    console.error("Monthly AI Event Error:", error);
+    res.json({
+      title: `第${req.body?.monthNumber || 1}月: AI自動生成・星辰降臨祭`,
+      themeName: "星辰降臨",
+      description: "1ヶ月の周期を終え、AIオーラによって全ダンジョンの魔力が活性化！レジェンド以上のドロップ率が大幅アップ中！",
+      buffType: "drop_rate_boost",
+      buffValue: 2.5,
+      rewardItemName: "星屑のルーン結晶",
+    });
+  }
+});
+
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

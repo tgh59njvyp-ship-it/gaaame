@@ -16,6 +16,7 @@ import { GachaScreen } from './components/GachaScreen';
 import { AdventureLog } from './components/AdventureLog';
 import { HubTabs } from './components/HubTabs';
 import { RouletteModal } from './components/RouletteModal';
+import { AiMonthlyEventModal } from './components/AiMonthlyEventModal';
 import { BeginnerQuestsModal } from './components/BeginnerQuestsModal';
 import { getInitialBeginnerQuests } from './utils/beginnerQuests';
 import { createLogEntry, appendLogToCharacter } from './utils/logHelper';
@@ -33,6 +34,7 @@ export default function App() {
   const [activeFloor, setActiveFloor] = useState<FloorNode | null>(null);
   const [showInventory, setShowInventory] = useState<boolean>(false);
   const [showRouletteModal, setShowRouletteModal] = useState<boolean>(false);
+  const [showAiEventModal, setShowAiEventModal] = useState<boolean>(false);
   const [showBeginnerQuestsModal, setShowBeginnerQuestsModal] = useState<boolean>(false);
   const [pendingLoot, setPendingLoot] = useState<Item | null>(null);
   const [notificationMsg, setNotificationMsg] = useState<string | null>(null);
@@ -63,6 +65,7 @@ export default function App() {
           if (loadedChar.eventTokens === undefined) loadedChar.eventTokens = 0;
           if (!loadedChar.beginnerQuests) loadedChar.beginnerQuests = getInitialBeginnerQuests();
           if (!loadedChar.unlockedSkills) loadedChar.unlockedSkills = [];
+          if (loadedChar.gameMonth === undefined) loadedChar.gameMonth = 1;
           setCharacter(loadedChar);
           setCurrentStage(parsed.currentStage || 1);
           setFloors(parsed.floors || []);
@@ -223,6 +226,7 @@ export default function App() {
   const handleStartAdventure = (newChar: CharacterState) => {
     const charWithTitles: CharacterState = {
       ...newChar,
+      gameMonth: 1,
       title: 'developer_mode',
       titlesUnlocked: ['developer_mode']
     };
@@ -472,6 +476,12 @@ export default function App() {
                   <Backpack className="w-4 h-4" />
                   <span>ステータス / バッグ</span>
                 </button>
+                <button
+                  onClick={() => setShowAiEventModal(true)}
+                  className="min-h-[36px] px-3 bg-gradient-to-r from-purple-950 to-indigo-950 hover:from-purple-900 hover:to-indigo-900 border border-purple-500/80 text-purple-200 text-xs font-bold rounded-lg transition flex items-center gap-1.5 cursor-pointer shadow-md animate-pulse"
+                >
+                  <span>🤖 AI月次イベント (第{character.gameMonth || 1}月)</span>
+                </button>
               </>
             );
           })()}
@@ -626,6 +636,16 @@ export default function App() {
           item={pendingLoot}
           character={character}
           onClaim={handleClaimLoot}
+        />
+      )}
+
+      {/* AI Monthly Event Modal */}
+      {showAiEventModal && character && (
+        <AiMonthlyEventModal
+          character={character}
+          onClose={() => setShowAiEventModal(false)}
+          onUpdateCharacter={handleUpdateCharacter}
+          onShowMessage={showNotification}
         />
       )}
 

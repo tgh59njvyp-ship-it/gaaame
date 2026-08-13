@@ -148,6 +148,15 @@ export interface CharacterState {
   gacha10Tickets: number;
   eventTokens: number;
   lastRouletteDate?: string;
+  gameMonth?: number;
+  activeAiEvent?: {
+    title: string;
+    themeName: string;
+    description: string;
+    buffType: string;
+    buffValue: number;
+    rewardItemName: string;
+  } | null;
   beginnerQuests: BeginnerQuest[];
   spells: Spell[];
   inventory: Item[];
